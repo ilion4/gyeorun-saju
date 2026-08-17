@@ -18,8 +18,8 @@
 <style>
   :root {
     --bg: #12122A;
-    --surface: #1B1B3D;
-    --surface-2: #23234B;
+    --surface: rgba(27,27,61,.60);
+    --surface-2: rgba(35,35,75,.72);
     --paper: #F3ECDD;
     --gold: #C9A24B;
     --gold-soft: #E7CE8F;
@@ -32,7 +32,13 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
-    background: radial-gradient(120% 90% at 50% -10%, #1E1E45 0%, var(--bg) 55%, #0B0B1E 100%);
+    background:
+      linear-gradient(180deg, rgba(10,10,26,.55) 0%, rgba(10,10,26,.35) 30%, rgba(8,8,20,.75) 78%, rgba(6,6,16,.92) 100%),
+      url('/media/bg.jpg');
+    background-size: cover;
+    background-position: center top;
+    background-attachment: fixed;
+    background-color: var(--bg);
     color: var(--ink);
     font-family: 'Pretendard', -apple-system, sans-serif;
     min-height: 100dvh;
@@ -139,6 +145,14 @@
   .done-wrap p { color: var(--ink-dim); font-size:14px; line-height:1.7; }
 
   .top-back { background:none; border:none; color: var(--ink-dim); font-size:20px; padding:0 6px 0 0; }
+
+  /* 배경 이미지 위에서 카드가 도드라져 보이도록 하는 유리질감 처리 */
+  .fortune-card, .tier-btn, input[type=text], input[type=email], input[type=date], input[type=time], select,
+  .segmented, .sijin-btn, .stamp, header.top {
+    backdrop-filter: blur(14px) saturate(1.1);
+    -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  }
+  header.top { background: linear-gradient(180deg, rgba(10,10,24,.55), rgba(10,10,24,0)); }
 
   .hero-video-wrap {
     width: 128px; height: 128px; margin: 4px auto 14px; border-radius: 50%;
