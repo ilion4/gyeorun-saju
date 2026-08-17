@@ -19,7 +19,7 @@ const FORTUNES = [
   { id: 'compat',  name: '궁합',   img: '/media/fortune-compat.jpg',  priceBrief: 4900,  priceDeep: 9900, desc: '두 사람의 사주로 보는 궁합', needsPartner: true },
   { id: 'reunion', name: '재회운', img: '/media/fortune-reunion.jpg', priceBrief: 4900,  priceDeep: 9900, desc: '헤어진 인연, 다시 이어질까' },
   { id: 'newyear', name: '신년운', img: '/media/fortune-newyear.jpg', priceBrief: 4900,  priceDeep: 9900, desc: '올해 나에게 다가올 흐름' },
-  { id: 'love',    name: '애정운', img: '/media/fortune-love.jpg',    priceBrief: 4900,  priceDeep: 9900, desc: '지금 내 연애/짝사랑의 흐름' },
+  { id: 'love',    name: '애정운/결혼운', img: '/media/fortune-love.jpg',    priceBrief: 4900,  priceDeep: 9900, desc: '지금 내 연애와 결혼의 흐름' },
   { id: 'money',   name: '재물운', img: '/media/fortune-money.jpg',   priceBrief: 4900,  priceDeep: 9900, desc: '돈이 들어오고 나가는 흐름' },
   { id: 'career',  name: '취업/사업운', img: '/media/fortune-career.jpg', priceBrief: 4900, priceDeep: 9900, desc: '일과 커리어의 방향' },
 ];

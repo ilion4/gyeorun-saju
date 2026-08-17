@@ -104,6 +104,14 @@ async function generateAndSend(orderId) {
     const isDeep = order.fortune.tierKey === 'deep';
     const productName = order.fortune.baseName || order.fortune.name;
 
+    // 상품별로 AI가 놓치기 쉬운 세부 주제를 명시적으로 짚어주는 보강 지침.
+    // (예: "애정운/결혼운"은 이름에 결혼이 들어가 있어도 AI가 연애 위주로만 쓰는 경우가 있어 별도로 강조)
+    const FORTUNE_FOCUS_NOTES = {
+      love: '- "애정운/결혼운" 상품이므로 연애 흐름만이 아니라 결혼 관련 내용도 반드시 함께 다룰 것: 결혼 시기·배우자 인연이 들어오는 흐름, (기혼자라면) 결혼 생활의 흐름과 유의할 점까지 포함',
+      compat: '- 두 사람의 궁합뿐 아니라 관계가 결혼까지 이어질 경우의 흐름도 함께 언급할 것',
+    };
+    const focusNote = FORTUNE_FOCUS_NOTES[order.fortune.id] || '';
+
     const prompt = `당신은 30년 경력의 사주 명리학 상담가입니다. 아래 사주 정보를 바탕으로 "${productName}" 풀이를 작성하세요. 이 결과는 PDF 리포트(A4, 표지·목차 포함 총 ${isDeep ? '8' : '5'}쪽 분량)로 만들어지므로, 반드시 아래 JSON 형식으로만 응답하세요. JSON 앞뒤로 다른 설명이나 마크다운 코드블록(\`\`\`)을 절대 넣지 마세요.
 
 ${selfSaju}
@@ -128,7 +136,7 @@ ${isDeep ? `- monthly 각 항목: 70~85자씩, 12개 전부 채울 것 (합계 �
 작성 지침:
 - 존댓말, 따뜻하지만 구체적인 어조
 - 한자(漢字)는 절대 쓰지 말 것 — 오행(목·화·토·금·수), 육친 등 명리학 용어도 반드시 한글로만 표기 (PDF 폰트가 한자를 지원하지 않아 깨져 보임)
-${isDeep ? `- sections는 아래 4개 구성으로 작성:
+${focusNote ? focusNote + '\n' : ''}${isDeep ? `- sections는 아래 4개 구성으로 작성:
   1) 타고난 사주 원국 풀이 (일간 중심 성향 분석)
   2) ${productName}와 직접 관련된 심층 해석
   3) 올해~내년 흐름 (대운/세운 관점, 시기별 조언)
