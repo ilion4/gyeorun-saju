@@ -16,12 +16,12 @@ const TIER_BRIEF = { key: 'brief', label: '간략하게', pageDesc: 'A4 약 5장
 const TIER_DEEP  = { key: 'deep',  label: '심도있게', pageDesc: 'A4 약 8장(표지·목차 포함)', charMin: 6800, charMax: 7600, maxTokens: 7200 };
 
 const FORTUNES = [
-  { id: 'compat',  name: '궁합',   emoji: '💞', priceBrief: 4900,  priceDeep: 9900, desc: '두 사람의 사주로 보는 궁합', needsPartner: true },
-  { id: 'reunion', name: '재회운', emoji: '🌙', priceBrief: 4900,  priceDeep: 9900, desc: '헤어진 인연, 다시 이어질까' },
-  { id: 'newyear', name: '신년운', emoji: '🎋', priceBrief: 4900,  priceDeep: 9900, desc: '올해 나에게 다가올 흐름' },
-  { id: 'love',    name: '애정운', emoji: '🌹', priceBrief: 4900,  priceDeep: 9900, desc: '지금 내 연애/짝사랑의 흐름' },
-  { id: 'money',   name: '재물운', emoji: '🪙', priceBrief: 4900,  priceDeep: 9900, desc: '돈이 들어오고 나가는 흐름' },
-  { id: 'career',  name: '취업/사업운', emoji: '⛩️', priceBrief: 4900, priceDeep: 9900, desc: '일과 커리어의 방향' },
+  { id: 'compat',  name: '궁합',   img: '/media/fortune-compat.jpg',  priceBrief: 4900,  priceDeep: 9900, desc: '두 사람의 사주로 보는 궁합', needsPartner: true },
+  { id: 'reunion', name: '재회운', img: '/media/fortune-reunion.jpg', priceBrief: 4900,  priceDeep: 9900, desc: '헤어진 인연, 다시 이어질까' },
+  { id: 'newyear', name: '신년운', img: '/media/fortune-newyear.jpg', priceBrief: 4900,  priceDeep: 9900, desc: '올해 나에게 다가올 흐름' },
+  { id: 'love',    name: '애정운', img: '/media/fortune-love.jpg',    priceBrief: 4900,  priceDeep: 9900, desc: '지금 내 연애/짝사랑의 흐름' },
+  { id: 'money',   name: '재물운', img: '/media/fortune-money.jpg',   priceBrief: 4900,  priceDeep: 9900, desc: '돈이 들어오고 나가는 흐름' },
+  { id: 'career',  name: '취업/사업운', img: '/media/fortune-career.jpg', priceBrief: 4900, priceDeep: 9900, desc: '일과 커리어의 방향' },
 ];
 
 const state = {
@@ -93,11 +93,13 @@ function getSaju(year, month, day, hour, minute = 0) {
 }
 
 // ---------- 렌더: 운세 카드 ----------
+// 카드 이미지 자체에 상품명·가격이 이미 디자인되어 있어 별도 텍스트를 얹지 않는다.
 const grid = document.getElementById('fortuneGrid');
 FORTUNES.forEach((f) => {
   const el = document.createElement('div');
   el.className = 'fortune-card';
-  el.innerHTML = `<span class="emoji">${f.emoji}</span><div class="name">${f.name}</div><div class="price">${f.priceBrief.toLocaleString()}원~</div>`;
+  el.style.backgroundImage = `url('${f.img}')`;
+  el.setAttribute('aria-label', `${f.name} ${f.priceBrief.toLocaleString()}원부터`);
   el.addEventListener('click', () => {
     document.querySelectorAll('.fortune-card').forEach((c) => c.classList.remove('selected'));
     el.classList.add('selected');
@@ -127,7 +129,6 @@ function showTierPanel(f) {
         id: f.id,
         baseName: f.name,
         name: `${f.name} (${tier.label})`,
-        emoji: f.emoji,
         needsPartner: f.needsPartner,
         price,
         tierKey: tier.key,
