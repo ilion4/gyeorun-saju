@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>관리자 — 결운</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet" />
+<style>
+  :root { --bg:#0F0F22; --surface:#1B1B3D; --line:#2E2E5C; --ink:#ECE6D6; --dim:#A9A6C4; --gold:#C9A24B; --red:#C05656; --green:#5FAE7A; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:'Pretendard',sans-serif; padding: 20px 14px 60px; }
+  h1 { font-size:18px; margin: 4px 0 18px; }
+  .login { max-width:320px; margin: 80px auto; text-align:center; }
+  .login input { width:100%; padding:13px; border-radius:10px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font-size:15px; margin-bottom:10px; }
+  .login button, .refresh { width:100%; padding:13px; border-radius:10px; border:none; background:var(--gold); color:#1B1520; font-weight:700; font-size:14.5px; cursor:pointer; }
+  .toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:10px; }
+  .toolbar .refresh { width:auto; padding:9px 16px; font-size:13px; }
+  .summary { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .chip { background:var(--surface); border:1px solid var(--line); border-radius:999px; padding:6px 12px; font-size:12px; color:var(--dim); }
+  table { width:100%; border-collapse: collapse; font-size:13px; }
+  th, td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--dim); font-weight:600; font-size:11.5px; }
+  .status { padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:700; display:inline-block; }
+  .status.sent { background:rgba(95,174,122,.15); color:var(--green); }
+  .status.failed { background:rgba(192,86,86,.15); color:var(--red); }
+  .status.pending, .status.not_sent { background:rgba(201,162,75,.15); color:var(--gold); }
+  .err { color:var(--red); font-size:11.5px; max-width:220px; white-space:normal; }
+  .resend { background:var(--surface); border:1px solid var(--line); color:var(--ink); padding:6px 10px; border-radius:8px; font-size:12px; cursor:pointer; }
+  .resend:hover { border-color: var(--gold); }
+  .scroll { overflow-x:auto; }
+  .empty { text-align:center; color:var(--dim); padding: 60px 0; font-size:14px; }
+</style>
+</head>
+<body>
+
+<div id="login" class="login">
+  <h1 style="text-align:center;">관리자 로그인</h1>
+  <input type="password" id="pw" placeholder="관리자 비밀번호" />
+  <button onclick="tryLogin()">들어가기</button>
+  <p id="loginErr" style="color:#C05656; font-size:12.5px; margin-top:10px;"></p>
+</div>
+
+<div id="dashboard" style="display:none;">
+  <div class="toolbar">
+    <h1 style="margin:0;">발송 로그</h1>
+    <button class="refresh" onclick="load()">새로고침</button>
+  </div>
+  <div class="summary" id="summary"></div>
+  <div class="scroll">
+    <table id="table" style="display:none;">
+      <thead>
+        <tr><th>시간</th><th>이름</th><th>이메일</th><th>상품</th><th>결제</th><th>발송상태</th><th>시도</th><th>오류</th><th></th></tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="emptyMsg" style="display:none;">아직 주문이 없어요.</div>
+  </div>
+</div>
+
+<script>
+  const pwKey = 'gyeorun_admin_pw';
+  const savedPw = localStorage.getItem(pwKey);
+  if (savedPw) { document.getElementById('pw').value = savedPw; tryLogin(); }
+
+  async function tryLogin() {
+    const pw = document.getElementById('pw').value;
+    const res = await fetch('/api/admin/orders', { headers: { 'x-admin-password': pw } });
+    if (res.ok) {
+      localStorage.setItem(pwKey, pw);
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      renderOrders((await res.json()).orders);
+    } else {
+      const data = await res.json().catch(() => ({}));
+      document.getElementById('loginErr').textContent = data.message || '로그인 실패';
+    }
+  }
+
+  async function load() {
+    const pw = localStorage.getItem(pwKey);
+    const res = await fetch('/api/admin/orders', { headers: { 'x-admin-password': pw } });
+    if (!res.ok) { alert('세션이 만료됐어요. 다시 로그인해주세요.'); location.reload(); return; }
+    renderOrders((await res.json()).orders);
+  }
+
+  function fmtTime(ts) {
+    if (!ts) return '-';
+    const d = new Date(ts);
+    return d.toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+  }
+
+  const statusLabel = { sent:'발송완료', failed:'실패', pending:'발송중', not_sent:'대기' };
+
+  function renderOrders(orders) {
+    const sent = orders.filter(o => o.sendStatus === 'sent').length;
+    const failed = orders.filter(o => o.sendStatus === 'failed').length;
+    const revenue = orders.filter(o => o.paid).reduce((s,o) => s + (o.price||0), 0);
+    document.getElementById('summary').innerHTML = `
+      <div class="chip">전체 ${orders.length}건</div>
+      <div class="chip">발송완료 ${sent}건</div>
+      <div class="chip" style="${failed>0?'color:#C05656':''}">실패 ${failed}건</div>
+      <div class="chip">누적 결제금액 ${revenue.toLocaleString()}원</div>
+    `;
+
+    if (orders.length === 0) {
+      document.getElementById('table').style.display='none';
+      document.getElementById('emptyMsg').style.display='block';
+      return;
+    }
+    document.getElementById('table').style.display='table';
+    document.getElementById('emptyMsg').style.display='none';
+
+    document.getElementById('tbody').innerHTML = orders.map(o => `
+      <tr>
+        <td>${fmtTime(o.createdAt)}</td>
+        <td>${o.name || '-'}</td>
+        <td>${o.email || '-'}</td>
+        <td>${o.fortune || '-'}</td>
+        <td>${o.paid ? (o.price||0).toLocaleString()+'원' : '미결제'}</td>
+        <td><span class="status ${o.sendStatus}">${statusLabel[o.sendStatus] || o.sendStatus}</span></td>
+        <td>${o.sendAttempts || 0}회</td>
+        <td class="err">${o.lastError || ''}</td>
+        <td>${o.paid && o.sendStatus !== 'sent' ? `<button class="resend" onclick="resend('${o.orderId}', this)">재발송</button>` : ''}</td>
+      </tr>
+    `).join('');
+  }
+
+  async function resend(orderId, btn) {
+    btn.disabled = true; btn.textContent = '요청중...';
+    const pw = localStorage.getItem(pwKey);
+    const res = await fetch(`/api/admin/orders/${orderId}/resend`, { method:'POST', headers: { 'x-admin-password': pw } });
+    if (res.ok) { setTimeout(load, 1200); } else { alert('재발송 요청 실패'); btn.disabled = false; btn.textContent = '재발송'; }
+  }
+</script>
+</body>
+</html>

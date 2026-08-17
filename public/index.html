@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>결운 — 나만의 사주 풀이</title>
+<meta name="theme-color" content="#12122A" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<script src="https://js.tosspayments.com/v2/standard"></script>
+
+<style>
+  :root {
+    --bg: #12122A;
+    --surface: #1B1B3D;
+    --surface-2: #23234B;
+    --paper: #F3ECDD;
+    --gold: #C9A24B;
+    --gold-soft: #E7CE8F;
+    --red: #8B3A3A;
+    --teal: #4A6C67;
+    --ink: #ECE6D6;
+    --ink-dim: #A9A6C4;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(120% 90% at 50% -10%, #1E1E45 0%, var(--bg) 55%, #0B0B1E 100%);
+    color: var(--ink);
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    -webkit-font-smoothing: antialiased;
+  }
+  #app { width: 100%; max-width: 480px; padding: 0 0 48px; min-height: 100dvh; position: relative; }
+
+  /* 별자리 배경 장식 */
+  .stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .5; }
+  .stars span { position: absolute; width: 2px; height: 2px; background: var(--gold-soft); border-radius: 50%; animation: twinkle 4s ease-in-out infinite; }
+
+  @keyframes twinkle { 0%,100% { opacity: .15; } 50% { opacity: .9; } }
+
+  header.top { position: relative; z-index: 1; padding: 28px 24px 18px; display:flex; align-items:center; justify-content:space-between; }
+  .brand { font-family: 'Noto Serif KR', serif; font-weight: 900; font-size: 22px; letter-spacing: .02em; color: var(--gold-soft); }
+  .brand small { display:block; font-family:'Pretendard'; font-weight:400; font-size:11px; color: var(--ink-dim); letter-spacing:.15em; margin-top:2px;}
+
+  .progress { display:flex; gap:6px; padding: 0 24px 8px; position:relative; z-index:1; }
+  .progress i { flex:1; height:3px; border-radius:3px; background: #2C2C58; overflow:hidden; }
+  .progress i b { display:block; height:100%; width:0%; background: linear-gradient(90deg, var(--gold), var(--gold-soft)); transition: width .5s ease; }
+
+  main { position:relative; z-index:1; padding: 12px 20px 0; }
+  .step { display:none; animation: fadeUp .45s ease; }
+  .step.active { display:block; }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(10px);} to {opacity:1; transform:none;} }
+
+  h1.title { font-family:'Noto Serif KR', serif; font-size: 21px; font-weight:700; margin: 6px 0 4px; color: var(--paper); }
+  p.sub { color: var(--ink-dim); font-size: 13.5px; margin: 0 0 22px; line-height:1.6; }
+
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .fortune-card {
+    background: var(--surface); border: 1px solid #2E2E5C; border-radius: var(--radius);
+    padding: 18px 14px; cursor:pointer; transition: all .2s ease; position:relative; overflow:hidden;
+  }
+  .fortune-card:active { transform: scale(.97); }
+  .fortune-card.selected { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold), 0 8px 24px -8px rgba(201,162,75,.4); background: var(--surface-2); }
+  .fortune-card .emoji { font-size: 26px; display:block; margin-bottom:10px; }
+  .fortune-card .name { font-weight:700; font-size:15px; color: var(--paper); }
+  .fortune-card .price { font-size:12px; color: var(--ink-dim); margin-top:4px; font-family:'IBM Plex Mono'; }
+
+  .tier-panel { margin-top: 18px; padding-top: 4px; animation: fadeUp .35s ease; }
+  .tier-panel-title { font-family:'Noto Serif KR'; font-size:14.5px; color: var(--gold-soft); margin: 0 0 10px; }
+  .tier-options { display:flex; flex-direction:column; gap:10px; }
+  .tier-btn {
+    display:flex; justify-content:space-between; align-items:center;
+    background: var(--surface); border:1px solid #2E2E5C; border-radius: 14px;
+    padding: 16px 16px; cursor:pointer; text-align:left;
+  }
+  .tier-btn:active { transform: scale(.98); }
+  .tier-btn .t-name { font-weight:700; font-size:14.5px; color: var(--paper); }
+  .tier-btn .t-desc { font-size:12px; color: var(--ink-dim); margin-top:4px; }
+  .tier-btn .t-price { font-family:'IBM Plex Mono'; font-size:16px; color: var(--gold-soft); font-weight:600; white-space:nowrap; margin-left:12px; }
+  .tier-btn.deep { border-color: rgba(201,162,75,.4); background: linear-gradient(135deg, rgba(201,162,75,.08), var(--surface)); }
+
+  label.field { display:block; margin-bottom:16px; }
+  label.field span.lbl { display:block; font-size:12.5px; color: var(--ink-dim); margin-bottom:7px; letter-spacing:.02em; }
+  input[type=text], input[type=email], input[type=date], input[type=time], select {
+    width:100%; background: var(--surface); border:1px solid #33335F; color: var(--paper);
+    padding: 13px 14px; border-radius: 12px; font-size:15px; font-family:'Pretendard';
+  }
+  input:focus, select:focus { outline: none; border-color: var(--gold); }
+  .row2 { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .segmented { display:flex; background: var(--surface); border-radius:12px; padding:4px; border:1px solid #33335F; }
+  .segmented button { flex:1; border:none; background:transparent; color: var(--ink-dim); padding:10px 0; border-radius:9px; font-size:13.5px; font-family:'Pretendard'; }
+  .segmented button.active { background: var(--gold); color: #1B1B3D; font-weight:700; }
+
+  .person-block { margin-top: 6px; }
+  .cal-toggle { margin-bottom: 14px; }
+  .leap-check { display:flex; align-items:center; gap:8px; font-size:13px; color: var(--ink-dim); margin: -6px 0 16px; }
+  .leap-check input { width:16px; height:16px; accent-color: var(--gold); }
+  .time-mode-toggle { margin-bottom: 12px; }
+  .sijin-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 6px; }
+  .sijin-btn { background: var(--surface); border:1px solid #33335F; border-radius:10px; padding: 9px 6px; text-align:center; cursor:pointer; }
+  .sijin-btn.active { border-color: var(--gold); background: var(--surface-2); }
+  .sijin-btn .s-name { font-size:13.5px; font-weight:700; color: var(--paper); }
+  .sijin-btn .s-range { font-size:10px; color: var(--ink-dim); margin-top:2px; }
+  .sijin-hint { font-size:11.5px; color: var(--ink-dim); margin: 0 0 16px; }
+
+  fieldset { border:none; padding:0; margin: 4px 0 20px; }
+  fieldset legend { font-family:'Noto Serif KR'; font-size:14px; color: var(--gold-soft); margin-bottom:12px; padding:0; }
+
+  .stamp-wrap { display:flex; gap:8px; margin: 22px 0; }
+  .stamp { flex:1; aspect-ratio:1/1.15; border:1.5px solid var(--gold); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; background: linear-gradient(160deg, rgba(201,162,75,.10), transparent); opacity:0; transform: scale(.8); animation: stampIn .5s ease forwards; }
+  .stamp b { font-family:'Noto Serif KR'; font-size: 20px; color: var(--gold-soft); line-height:1.15; }
+  .stamp span { font-size:10px; color: var(--ink-dim); margin-top:6px; letter-spacing:.1em; }
+  @keyframes stampIn { to { opacity:1; transform:scale(1); } }
+
+  .btn { width:100%; border:none; border-radius: 14px; padding:16px; font-size:15.5px; font-weight:700; font-family:'Pretendard'; cursor:pointer; transition: opacity .2s; }
+  .btn:disabled { opacity:.4; }
+  .btn-primary { background: linear-gradient(135deg, var(--gold), #B88A3A); color:#1B1520; }
+  .btn-ghost { background: transparent; color: var(--ink-dim); border:1px solid #33335F; margin-top:10px; }
+
+  .price-line { display:flex; justify-content:space-between; align-items:baseline; padding:16px 0; border-top:1px dashed #33335F; margin-top:8px; }
+  .price-line b { font-family:'IBM Plex Mono'; font-size:20px; color: var(--gold-soft); }
+
+  #payment-widget, #agreement-widget { margin: 18px 0; }
+
+  .done-wrap { text-align:center; padding: 60px 10px 20px; }
+  .done-seal { width:74px; height:74px; margin:0 auto 24px; border:2px solid var(--red); border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Noto Serif KR'; color: var(--red); font-size:26px; font-weight:900; }
+  .done-wrap h2 { font-family:'Noto Serif KR'; color: var(--paper); font-size:19px; }
+  .done-wrap p { color: var(--ink-dim); font-size:14px; line-height:1.7; }
+
+  .top-back { background:none; border:none; color: var(--ink-dim); font-size:20px; padding:0 6px 0 0; }
+</style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+
+<div id="app">
+  <header class="top">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button class="top-back" id="backBtn" style="visibility:hidden;">←</button>
+      <div class="brand">결운<small>SAJU FORTUNE</small></div>
+    </div>
+    <div style="font-size:11px; color:var(--ink-dim);" id="stepLabel">1 / 4</div>
+  </header>
+
+  <div class="progress">
+    <i><b id="p1"></b></i><i><b id="p2"></b></i><i><b id="p3"></b></i><i><b id="p4"></b></i>
+  </div>
+
+  <main>
+    <!-- STEP 1 : 운세 선택 -->
+    <section class="step active" id="step-1">
+      <h1 class="title">오늘, 어떤 운을 물으시겠어요</h1>
+      <p class="sub">원하는 풀이를 하나 골라주세요. 사주 8자를 바탕으로 AI가 상세히 풀이해 드립니다.</p>
+      <div class="grid" id="fortuneGrid"></div>
+
+      <div id="tierPanel" class="tier-panel" style="display:none;">
+        <p class="tier-panel-title" id="tierPanelTitle"></p>
+        <div class="tier-options" id="tierOptions"></div>
+      </div>
+    </section>
+
+    <!-- STEP 2 : 정보 입력 -->
+    <section class="step" id="step-2">
+      <h1 class="title">정보를 입력해주세요</h1>
+      <p class="sub">정확한 생년월일시일수록 풀이가 정밀해져요. 시간을 모르면 &lsquo;모름&rsquo;을 선택해도 괜찮아요.</p>
+
+      <fieldset>
+        <legend id="legend-self">본인 정보</legend>
+        <label class="field"><span class="lbl">이름 (풀이에 표기)</span><input type="text" id="name" placeholder="예: 홍길동" /></label>
+        <div class="segmented" style="margin-bottom:16px;">
+          <button type="button" data-g="M" class="active">남성</button>
+          <button type="button" data-g="F">여성</button>
+        </div>
+
+        <div class="person-block" data-person="self">
+          <div class="segmented cal-toggle">
+            <button type="button" class="cal-btn active" data-cal="solar">양력</button>
+            <button type="button" class="cal-btn" data-cal="lunar">음력</button>
+          </div>
+          <label class="field"><span class="lbl bdate-label">생년월일 (양력)</span><input type="date" class="bdate-input" id="bdate" /></label>
+          <label class="leap-check" style="display:none;"><input type="checkbox" class="leap-input" /> 윤달이에요</label>
+
+          <p class="lbl" style="margin: 4px 0 8px;">태어난 시간</p>
+          <div class="segmented time-mode-toggle">
+            <button type="button" class="tm-btn active" data-mode="exact">정확히</button>
+            <button type="button" class="tm-btn" data-mode="sijin">대략(시진)</button>
+            <button type="button" class="tm-btn" data-mode="unknown">모름</button>
+          </div>
+          <div class="time-exact-wrap"><input type="time" class="btime-input" id="btime" /></div>
+          <div class="time-sijin-wrap sijin-grid" style="display:none;"></div>
+          <p class="sijin-hint" style="display:none;">예: 어르신께 &lsquo;축시생&rsquo;이라고 들으신 경우 여기서 선택하세요</p>
+        </div>
+      </fieldset>
+
+      <fieldset id="partnerFieldset" style="display:none;">
+        <legend>상대방 정보</legend>
+        <label class="field"><span class="lbl">이름</span><input type="text" id="pname" placeholder="예: 김철수" /></label>
+
+        <div class="person-block" data-person="partner">
+          <div class="segmented cal-toggle">
+            <button type="button" class="cal-btn active" data-cal="solar">양력</button>
+            <button type="button" class="cal-btn" data-cal="lunar">음력</button>
+          </div>
+          <label class="field"><span class="lbl bdate-label">생년월일 (양력)</span><input type="date" class="bdate-input" id="pbdate" /></label>
+          <label class="leap-check" style="display:none;"><input type="checkbox" class="leap-input" /> 윤달이에요</label>
+
+          <p class="lbl" style="margin: 4px 0 8px;">태어난 시간 (모르면 &lsquo;모름&rsquo;)</p>
+          <div class="segmented time-mode-toggle">
+            <button type="button" class="tm-btn active" data-mode="exact">정확히</button>
+            <button type="button" class="tm-btn" data-mode="sijin">대략(시진)</button>
+            <button type="button" class="tm-btn" data-mode="unknown">모름</button>
+          </div>
+          <div class="time-exact-wrap"><input type="time" class="btime-input" id="pbtime" /></div>
+          <div class="time-sijin-wrap sijin-grid" style="display:none;"></div>
+        </div>
+      </fieldset>
+
+      <label class="field"><span class="lbl">결과 받을 이메일</span><input type="email" id="email" placeholder="you@example.com" /></label>
+
+      <div class="stamp-wrap" id="stampPreview"></div>
+
+      <button class="btn btn-primary" id="toStep3">사주 확인하고 결제하러 가기</button>
+    </section>
+
+    <!-- STEP 3 : 결제 -->
+    <section class="step" id="step-3">
+      <h1 class="title">사주 배치가 완성됐어요</h1>
+      <p class="sub" id="orderSummary">선택하신 풀이를 결제하면 AI가 곧바로 해석을 작성해 이메일로 보내드려요.</p>
+
+      <div class="stamp-wrap" id="stampFinal"></div>
+
+      <div class="price-line"><span>결제 금액</span><b id="priceText">0원</b></div>
+
+      <div id="payment-widget"></div>
+      <div id="agreement-widget"></div>
+
+      <button class="btn btn-primary" id="payBtn" style="margin-top:14px;">토스로 결제하기</button>
+      <button class="btn btn-ghost" id="backTo2">정보 다시 입력</button>
+    </section>
+
+    <!-- STEP 4 : 완료 -->
+    <section class="step" id="step-4">
+      <div class="done-wrap">
+        <div class="done-seal">結</div>
+        <h2>결제가 완료됐어요</h2>
+        <p>AI가 사주를 풀이하는 대로<br/><b id="doneEmail" style="color:var(--gold-soft)"></b>로<br/>보내드릴게요. (보통 3분 이내)</p>
+        <button class="btn btn-ghost" id="restartBtn" style="margin-top:28px;">다른 운세 더 보기</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

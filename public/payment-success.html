@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>결제 확인 중 — 결운</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@700;900&display=swap" rel="stylesheet" />
+<style>
+  body { margin:0; min-height:100dvh; display:flex; align-items:center; justify-content:center; background: radial-gradient(120% 90% at 50% -10%, #1E1E45 0%, #12122A 55%, #0B0B1E 100%); color:#ECE6D6; font-family:'Pretendard',sans-serif; }
+  .box { text-align:center; max-width:340px; padding: 0 24px; }
+  .seal { width:74px; height:74px; margin:0 auto 22px; border:2px solid #8B3A3A; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Noto Serif KR'; color:#8B3A3A; font-size:26px; font-weight:900; }
+  h1 { font-family:'Noto Serif KR'; font-size:19px; margin: 0 0 10px; color:#F3ECDD; }
+  p { font-size:14px; color:#A9A6C4; line-height:1.7; }
+  a.btn { display:inline-block; margin-top:26px; padding:13px 22px; border-radius:12px; background:linear-gradient(135deg,#C9A24B,#B88A3A); color:#1B1520; text-decoration:none; font-weight:700; font-size:14.5px; }
+  .spin { width:26px; height:26px; border:3px solid #33335F; border-top-color:#C9A24B; border-radius:50%; margin:0 auto 18px; animation: sp .8s linear infinite; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+  <div class="box" id="box">
+    <div class="spin"></div>
+    <h1>결제를 확인하고 있어요</h1>
+    <p>잠시만 기다려주세요.</p>
+  </div>
+
+<script>
+(async function () {
+  const params = new URLSearchParams(location.search);
+  const paymentKey = params.get('paymentKey');
+  const orderId = params.get('orderId');
+  const amount = params.get('amount');
+  const box = document.getElementById('box');
+
+  if (!paymentKey || !orderId || !amount) {
+    box.innerHTML = '<h1>결제 정보를 확인할 수 없어요</h1><p>다시 시도해주세요.</p><a class="btn" href="/">처음으로</a>';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/payments/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentKey, orderId, amount: Number(amount) }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || '결제 승인 실패');
+
+    box.innerHTML = `
+      <div class="seal">結</div>
+      <h1>결제가 완료됐어요</h1>
+      <p>AI가 사주를 풀이하는 대로<br/><b style="color:#E7CE8F">${data.email}</b> 로<br/>보내드릴게요. (보통 3분 이내)</p>
+      <a class="btn" href="/">다른 운세 더 보기</a>
+    `;
+  } catch (err) {
+    box.innerHTML = `<h1>결제 승인 중 문제가 발생했어요</h1><p>${err.message}</p><a class="btn" href="/">처음으로</a>`;
+  }
+})();
+</script>
+</body>
+</html>
