@@ -16,12 +16,12 @@ const TIER_BRIEF = { key: 'brief', label: '간략하게', pageDesc: 'A4 약 5장
 const TIER_DEEP  = { key: 'deep',  label: '심도있게', pageDesc: 'A4 약 8장(표지·목차 포함)', charMin: 6800, charMax: 7600, maxTokens: 7200 };
 
 const FORTUNES = [
-  { id: 'compat',  name: '궁합',   emoji: '💞', priceBrief: 6900,  priceDeep: 16900, desc: '두 사람의 사주로 보는 궁합', needsPartner: true },
-  { id: 'reunion', name: '재회운', emoji: '🌙', priceBrief: 5900,  priceDeep: 14900, desc: '헤어진 인연, 다시 이어질까' },
-  { id: 'newyear', name: '신년운', emoji: '🎋', priceBrief: 4900,  priceDeep: 12900, desc: '올해 나에게 다가올 흐름' },
-  { id: 'love',    name: '애정운', emoji: '🌹', priceBrief: 4900,  priceDeep: 12900, desc: '지금 내 연애/짝사랑의 흐름' },
-  { id: 'money',   name: '재물운', emoji: '🪙', priceBrief: 4900,  priceDeep: 12900, desc: '돈이 들어오고 나가는 흐름' },
-  { id: 'career',  name: '취업/사업운', emoji: '⛩️', priceBrief: 5900, priceDeep: 14900, desc: '일과 커리어의 방향' },
+  { id: 'compat',  name: '궁합',   emoji: '💞', priceBrief: 4900,  priceDeep: 9900, desc: '두 사람의 사주로 보는 궁합', needsPartner: true },
+  { id: 'reunion', name: '재회운', emoji: '🌙', priceBrief: 4900,  priceDeep: 9900, desc: '헤어진 인연, 다시 이어질까' },
+  { id: 'newyear', name: '신년운', emoji: '🎋', priceBrief: 4900,  priceDeep: 9900, desc: '올해 나에게 다가올 흐름' },
+  { id: 'love',    name: '애정운', emoji: '🌹', priceBrief: 4900,  priceDeep: 9900, desc: '지금 내 연애/짝사랑의 흐름' },
+  { id: 'money',   name: '재물운', emoji: '🪙', priceBrief: 4900,  priceDeep: 9900, desc: '돈이 들어오고 나가는 흐름' },
+  { id: 'career',  name: '취업/사업운', emoji: '⛩️', priceBrief: 4900, priceDeep: 9900, desc: '일과 커리어의 방향' },
 ];
 
 const state = {
@@ -360,7 +360,7 @@ document.getElementById('payBtn').addEventListener('click', async () => {
   try {
     await tossWidgets.requestPayment({
       orderId,
-      orderName: `[결운] ${state.fortune.name} 풀이`,
+      orderName: `[백도령 만세력] ${state.fortune.name} 풀이`,
       successUrl: window.location.origin + '/payment-success.html',
       failUrl: window.location.origin + '/payment-fail.html',
       customerEmail: state.email,

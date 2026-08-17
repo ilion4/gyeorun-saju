@@ -143,7 +143,7 @@ ${isDeep ? `- sections는 아래 4개 구성으로 작성:
 
     const sajuMeta = buildSajuMeta(order.self);
     const pdfBuffer = await generateFortunePdf({ order, saju: sajuMeta, content });
-    const fileName = `결운_${order.self.name}_${productName}.pdf`;
+    const fileName = `백도령만세력_${order.self.name}_${productName}.pdf`;
 
     await sendEmail(order.email, order.self.name, order.fortune.name, pdfBuffer, fileName);
 
@@ -288,16 +288,16 @@ async function sendEmail(to, name, fortuneName, pdfBuffer, fileName) {
 첨부된 PDF 파일을 열어 확인해주세요.
 
 감사합니다.
-결운 드림`;
+백도령 만세력 드림`;
 
   if (!process.env.SMTP_USER) {
     console.log(`[이메일 미설정 - 콘솔 출력] to:${to}\n${shortBody}\n(PDF 첨부: ${fileName}, ${pdfBuffer.length} bytes)`);
     return;
   }
   await transporter.sendMail({
-    from: `결운 <${MAIL_FROM}>`,
+    from: `백도령 만세력 <${MAIL_FROM}>`,
     to,
-    subject: `[결운] ${name}님의 ${fortuneName} 풀이가 도착했어요`,
+    subject: `[백도령 만세력] ${name}님의 ${fortuneName} 풀이가 도착했어요`,
     text: shortBody,
     html: `<div style="font-family:sans-serif; line-height:1.8; white-space:pre-wrap;">${shortBody}</div>`,
     attachments: [{ filename: fileName, content: pdfBuffer }],
@@ -346,6 +346,6 @@ app.post('/api/admin/orders/:orderId/resend', checkAdmin, (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`결운 서버 실행 중 http://localhost:${PORT}`);
+  console.log(`백도령 만세력 서버 실행 중 http://localhost:${PORT}`);
   resumePendingRetries();
 });
