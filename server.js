@@ -151,7 +151,10 @@ ${focusNote ? focusNote + '\n' : ''}${isDeep ? `- sections는 아래 4개 구성
 
     const sajuMeta = buildSajuMeta(order.self);
     const pdfBuffer = await generateFortunePdf({ order, saju: sajuMeta, content });
-    const fileName = `백도령만세력_${order.self.name}_${productName}.pdf`;
+    // 파일명에 못 쓰는 문자(/, \, :, * 등)가 상품명에 섞여 있어도 안전하도록 정리
+    // (예: "애정운/결혼운" → "애정운_결혼운")
+    const safeProductName = productName.replace(/[\\/:*?"<>|]/g, '_');
+    const fileName = `백도령만세력_${order.self.name}_${safeProductName}.pdf`;
 
     await sendEmail(order.email, order.self.name, order.fortune.name, pdfBuffer, fileName);
 
