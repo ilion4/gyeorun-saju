@@ -13,7 +13,6 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" />
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet" />
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
-<script src="https://js.tosspayments.com/v2/standard"></script>
 
 <style>
   :root {
@@ -140,6 +139,11 @@
   .price-line b { font-family:'IBM Plex Mono'; font-size:20px; color: var(--gold-soft); }
 
   #payment-widget, #agreement-widget { margin: 18px 0; }
+  .bank-box { background: var(--surface); border:1px solid #33335F; border-radius: 14px; padding: 16px 18px; margin: 16px 0; }
+  .bank-row { display:flex; align-items:center; gap:10px; padding: 7px 0; font-size: 14px; }
+  .bank-row .lbl { color: var(--ink-dim); width: 78px; flex-shrink:0; }
+  .bank-row b { color: var(--paper); font-family:'IBM Plex Mono'; }
+  .copy-btn { margin-left:auto; background: var(--surface-2); border:1px solid #33335F; color: var(--gold-soft); font-size:12px; padding: 4px 10px; border-radius:8px; cursor:pointer; }
 
   .done-wrap { text-align:center; padding: 60px 10px 20px; }
   .done-seal { width:74px; height:74px; margin:0 auto 24px; border:2px solid var(--red); border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Noto Serif KR'; color: var(--red); font-size:26px; font-weight:900; }
@@ -262,29 +266,35 @@
       <button class="btn btn-primary" id="toStep3">사주 확인하고 결제하러 가기</button>
     </section>
 
-    <!-- STEP 3 : 결제 -->
+    <!-- STEP 3 : 무통장입금 안내 -->
     <section class="step" id="step-3">
       <h1 class="title">사주 배치가 완성됐어요</h1>
       <p class="sub" id="orderSummary">선택하신 풀이를 결제하면 AI가 곧바로 해석을 작성해 이메일로 보내드려요.</p>
 
       <div class="stamp-wrap" id="stampFinal"></div>
 
-      <div class="price-line"><span>결제 금액</span><b id="priceText">0원</b></div>
+      <div class="price-line"><span>입금하실 금액</span><b id="priceText">0원</b></div>
 
-      <div id="payment-widget"></div>
-      <div id="agreement-widget"></div>
+      <div class="bank-box">
+        <div class="bank-row"><span class="lbl">입금 은행</span><b id="bankNameText">-</b></div>
+        <div class="bank-row"><span class="lbl">계좌번호</span><b id="bankAccountText">-</b> <button type="button" class="copy-btn" id="copyAccountBtn">복사</button></div>
+        <div class="bank-row"><span class="lbl">예금주</span><b id="bankHolderText">-</b></div>
+      </div>
 
-      <button class="btn btn-primary" id="payBtn" style="margin-top:14px;">토스로 결제하기</button>
+      <label class="field"><span class="lbl">입금자명 (실제 입금하실 분 성함)</span><input type="text" id="depositorName" placeholder="예: 홍길동" /></label>
+      <p class="sub" style="margin-top:6px;">위 금액 그대로 입금해주세요. 입금 확인은 보통 5~10분 내로 자동 처리되며, 확인되는 대로 이메일로 PDF를 보내드려요.</p>
+
+      <button class="btn btn-primary" id="payBtn" style="margin-top:14px;">입금 신청 완료</button>
       <button class="btn btn-ghost" id="backTo2">정보 다시 입력</button>
     </section>
 
-    <!-- STEP 4 : 완료 -->
+    <!-- STEP 4 : 입금 대기 -->
     <section class="step" id="step-4">
       <div class="done-wrap">
-        <div class="done-seal">結</div>
-        <h2>결제가 완료됐어요</h2>
-        <p>AI가 사주를 풀이하는 대로<br/><b id="doneEmail" style="color:var(--gold-soft)"></b>로<br/>보내드릴게요. (보통 3분 이내)</p>
-        <button class="btn btn-ghost" id="restartBtn" style="margin-top:28px;">다른 운세 더 보기</button>
+        <div class="done-seal">待</div>
+        <h2>입금 확인 중이에요</h2>
+        <p>입금이 확인되면(보통 5~10분 이내)<br/>AI가 풀이를 작성해서<br/><b id="doneEmail" style="color:var(--gold-soft)"></b>로<br/>PDF를 보내드릴게요. 창을 닫으셔도 괜찮아요.</p>
+        <button class="btn btn-ghost" id="restartBtn" style="margin-top:28px;">처음으로</button>
       </div>
     </section>
   </main>

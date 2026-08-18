@@ -15,6 +15,14 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const MAIL_FROM = process.env.MAIL_FROM || 'gyeorun@example.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 
+// -------------------- 무통장입금 계좌 정보 --------------------
+const BANK_NAME = process.env.BANK_NAME || '은행명 미설정';
+const BANK_ACCOUNT_NO = process.env.BANK_ACCOUNT_NO || '000-000-000000';
+const BANK_HOLDER = process.env.BANK_HOLDER || '예금주 미설정';
+// 뱅크다가 우리 서버를 호출할 때 URL에 이 값을 넣어서 아무나 호출 못 하게 막는 용도.
+// 뱅크다 상점관리 화면에 URL 등록할 때 이 값 그대로 넣으면 됨 (예: https://내주소/api/bankda/여기에값/pending-orders)
+const BANKDA_SECRET = process.env.BANKDA_SECRET || 'change-me';
+
 // 실패 시 재시도 간격: 1분 -> 5분 -> 15분, 그 후엔 자동 재시도 중단(관리자가 수동 재발송)
 const RETRY_DELAYS_MS = [60 * 1000, 5 * 60 * 1000, 15 * 60 * 1000];
 const MAX_ATTEMPTS = RETRY_DELAYS_MS.length;
@@ -34,13 +42,22 @@ app.post('/api/lunar-to-solar', (req, res) => {
   }
 });
 
+// -------------------- 0-1) 무통장입금 계좌 안내 --------------------
+app.get('/api/bank-info', (req, res) => {
+  res.json({ bankName: BANK_NAME, accountNo: BANK_ACCOUNT_NO, holder: BANK_HOLDER });
+});
+
 // -------------------- 1) 주문 생성 --------------------
 app.post('/api/orders', (req, res) => {
-  const { orderId, fortune, self, partner, email } = req.body;
+  const { orderId, fortune, self, partner, email, depositorName } = req.body;
   if (!orderId || !fortune || !self || !email) {
     return res.status(400).json({ message: '주문 정보가 올바르지 않습니다.' });
   }
-  store.createOrder(orderId, { fortune, self, partner, email });
+  // 무통장입금 방식이라 입금자명이 반드시 있어야 뱅크다가 자동으로 매칭할 수 있음
+  if (!depositorName) {
+    return res.status(400).json({ message: '입금자명을 입력해주세요.' });
+  }
+  store.createOrder(orderId, { fortune, self, partner, email, depositorName, paymentMethod: 'bank_transfer' });
   res.json({ ok: true });
 });
 
@@ -76,6 +93,63 @@ app.post('/api/payments/confirm', async (req, res) => {
     console.error(err);
     res.status(500).json({ message: '결제 승인 처리 중 오류가 발생했습니다.' });
   }
+});
+
+// -------------------- 2-1) 뱅크다 자동 입금확인 연동 --------------------
+// 뱅크다 서버가 우리 서버에 요청을 보내는 3개 API. URL에 포함된 :secret 값이 안 맞으면 401로 거절한다.
+function checkBankdaSecret(req, res, next) {
+  if (req.params.secret !== BANKDA_SECRET) {
+    return res.status(401).json({ return_code: 401, description: '인증 정보 오류' });
+  }
+  next();
+}
+
+// 주문 1건을 뱅크다 규격(orders 배열의 원소 형태)으로 변환
+function toBankdaOrder(order) {
+  return {
+    order_id: order.orderId,
+    buyer_name: order.self.name,
+    billing_name: order.depositorName || order.self.name, // 입금자명(결제자명)
+    bank_account_no: BANK_ACCOUNT_NO,
+    bank_code_name: BANK_NAME,
+    order_price_amount: order.fortune.price,
+    order_date: new Date(order.createdAt).toISOString(),
+    items: [{ product_name: order.fortune.name }],
+  };
+}
+
+// (1) 미확인주문리스트 — 아직 입금 확인 안 된 주문들을 뱅크다에 알려줌
+app.post('/api/bankda/:secret/pending-orders', checkBankdaSecret, (req, res) => {
+  const orders = store.listUnpaidOrders().map(toBankdaOrder);
+  res.json({ orders });
+});
+
+// (2) 주문상세 — 특정 주문 1건의 상세 정보를 알려줌
+app.post('/api/bankda/:secret/order-detail', checkBankdaSecret, (req, res) => {
+  const { order_id } = req.body;
+  const order = store.getOrder(order_id);
+  if (!order) return res.status(415).json({ return_code: 415, description: '존재하지 않는 주문번호' });
+  res.json({ order: toBankdaOrder(order) });
+});
+
+// (3) 입금확인 — 뱅크다가 입금-주문 매칭에 성공한 건들을 알려주면, 그 주문들을 결제완료 처리하고 발송 시작
+app.put('/api/bankda/:secret/confirm', checkBankdaSecret, (req, res) => {
+  const { requests } = req.body;
+  if (!Array.isArray(requests)) {
+    return res.status(400).json({ return_code: 400, description: '요청 format 오류' });
+  }
+
+  const results = requests.map(({ order_id }) => {
+    const order = store.getOrder(order_id);
+    if (!order) return { order_id, description: '실패 — 존재하지 않는 주문번호' };
+    if (order.paid) return { order_id, description: '실패 — 이미 입금확인 처리된 주문' };
+
+    store.updateOrder(order_id, { paid: true, paidVia: 'bankda', paidAt: Date.now() });
+    generateAndSend(order_id); // 비동기로 PDF 생성 + 이메일 발송 시작
+    return { order_id, description: '성공' };
+  });
+
+  res.json({ return_code: 200, description: '정상', orders: results });
 });
 
 // -------------------- 3) AI 풀이 생성 + 이메일 발송 (+ 실패시 자동 재시도) --------------------

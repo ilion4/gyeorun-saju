@@ -312,7 +312,7 @@ document.getElementById('toStep3').addEventListener('click', async () => {
     document.getElementById('priceText').textContent = state.fortune.price.toLocaleString() + '원';
 
     goTo(3);
-    initTossWidget();
+    loadBankInfo();
   } catch (err) {
     alert(err.message || '입력값을 확인하는 중 오류가 발생했어요.');
   } finally {
@@ -333,43 +333,54 @@ function renderStamps(containerId, saju) {
   });
 }
 
-// ---------- STEP3: 토스페이먼츠 ----------
-let tossWidgets = null;
-async function initTossWidget() {
-  const container = document.getElementById('payment-widget');
-  container.innerHTML = '';
-  document.getElementById('agreement-widget').innerHTML = '';
-  // ⚠️ 데모용 테스트 클라이언트 키 — 실제 배포 시 본인 상점의 키로 교체하세요.
-  const CLIENT_KEY = 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm';
-  const tossPayments = TossPayments(CLIENT_KEY);
-  tossWidgets = tossPayments.widgets({ customerKey: 'guest_' + Date.now() });
-  await tossWidgets.setAmount({ currency: 'KRW', value: state.fortune.price });
-  await Promise.all([
-    tossWidgets.renderPaymentMethods({ selector: '#payment-widget' }),
-    tossWidgets.renderAgreement({ selector: '#agreement-widget' }),
-  ]);
+// ---------- STEP3: 무통장입금 계좌 안내 ----------
+async function loadBankInfo() {
+  try {
+    const res = await fetch('/api/bank-info');
+    const info = await res.json();
+    document.getElementById('bankNameText').textContent = info.bankName;
+    document.getElementById('bankAccountText').textContent = info.accountNo;
+    document.getElementById('bankHolderText').textContent = info.holder;
+  } catch (err) {
+    console.error('계좌 정보를 불러오지 못했어요', err);
+  }
 }
 
-document.getElementById('payBtn').addEventListener('click', async () => {
-  if (!tossWidgets) return;
-  const orderId = 'order_' + Date.now();
-  // 결제 요청 전, 서버에 주문 내용을 먼저 저장 (결제 승인 시 대조)
-  await fetch('/api/orders', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ orderId, fortune: state.fortune, self: state.self, partner: state.partner, email: state.email }),
+document.getElementById('copyAccountBtn').addEventListener('click', () => {
+  const text = document.getElementById('bankAccountText').textContent;
+  navigator.clipboard?.writeText(text).then(() => {
+    const btn = document.getElementById('copyAccountBtn');
+    const prev = btn.textContent;
+    btn.textContent = '복사됨';
+    setTimeout(() => (btn.textContent = prev), 1500);
   });
+});
+
+document.getElementById('payBtn').addEventListener('click', async () => {
+  const depositorName = document.getElementById('depositorName').value.trim();
+  if (!depositorName) { alert('입금자명을 입력해주세요.'); return; }
+
+  const btn = document.getElementById('payBtn');
+  btn.disabled = true; btn.textContent = '접수 중...';
+
+  const orderId = 'order_' + Date.now();
   try {
-    await tossWidgets.requestPayment({
-      orderId,
-      orderName: `[백도령 만세력] ${state.fortune.name} 풀이`,
-      successUrl: window.location.origin + '/payment-success.html',
-      failUrl: window.location.origin + '/payment-fail.html',
-      customerEmail: state.email,
-      customerName: state.self.name,
+    const res = await fetch('/api/orders', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orderId, fortune: state.fortune, self: state.self, partner: state.partner,
+        email: state.email, depositorName,
+      }),
     });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || '주문 접수에 실패했어요.');
+
+    document.getElementById('doneEmail').textContent = state.email;
+    goTo(4);
   } catch (err) {
-    console.error(err);
-    alert('결제가 취소되었거나 오류가 발생했어요.');
+    alert(err.message || '주문 접수 중 오류가 발생했어요.');
+  } finally {
+    btn.disabled = false; btn.textContent = '입금 신청 완료';
   }
 });
 
