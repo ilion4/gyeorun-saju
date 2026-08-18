@@ -21,7 +21,7 @@ const BANK_ACCOUNT_NO = process.env.BANK_ACCOUNT_NO || '000-000-000000';
 const BANK_HOLDER = process.env.BANK_HOLDER || '예금주 미설정';
 // 뱅크다가 우리 서버를 호출할 때 URL에 이 값을 넣어서 아무나 호출 못 하게 막는 용도.
 // 뱅크다 상점관리 화면에 URL 등록할 때 이 값 그대로 넣으면 됨 (예: https://내주소/api/bankda/여기에값/pending-orders)
-const BANKDA_SECRET = process.env.BANKDA_SECRET || 'change-me';
+const BANKDA_SECRET = (process.env.BANKDA_SECRET || 'change-me').trim();
 
 // 실패 시 재시도 간격: 1분 -> 5분 -> 15분, 그 후엔 자동 재시도 중단(관리자가 수동 재발송)
 const RETRY_DELAYS_MS = [60 * 1000, 5 * 60 * 1000, 15 * 60 * 1000];
@@ -98,7 +98,9 @@ app.post('/api/payments/confirm', async (req, res) => {
 // -------------------- 2-1) 뱅크다 자동 입금확인 연동 --------------------
 // 뱅크다 서버가 우리 서버에 요청을 보내는 3개 API. URL에 포함된 :secret 값이 안 맞으면 401로 거절한다.
 function checkBankdaSecret(req, res, next) {
-  if (req.params.secret !== BANKDA_SECRET) {
+  const given = (req.params.secret || '').trim();
+  if (given !== BANKDA_SECRET) {
+    console.warn(`[뱅크다 인증 실패] 받은 값: "${given}" (길이 ${given.length}) / 등록된 값 길이 ${BANKDA_SECRET.length}`);
     return res.status(401).json({ return_code: 401, description: '인증 정보 오류' });
   }
   next();
