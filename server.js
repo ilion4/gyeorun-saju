@@ -1,6 +1,5 @@
 require('dotenv').config();
 const express = require('express');
-const nodemailer = require('nodemailer');
 const { getSaju } = require('./lib/saju.js');
 const store = require('./lib/store.js');
 const KoreanLunarCalendar = require('korean-lunar-calendar');
@@ -375,19 +374,10 @@ function demoFortuneJson(order, isDeep) {
 }
 
 // -------------------- 4) 이메일 발송 --------------------
-// 465(암시적 TLS)는 일부 호스팅(Railway 포함) 환경에서 outbound가 막히는 경우가 있어서,
-// 더 널리 허용되는 587(STARTTLS)을 기본값으로 사용한다. SMTP_PORT로 언제든 덮어쓸 수 있음.
-const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.resend.com',
-  port: SMTP_PORT,
-  secure: SMTP_PORT === 465, // 465면 암시적 TLS, 그 외(587 등)는 STARTTLS
-  requireTLS: SMTP_PORT !== 465,
-  auth: { user: process.env.SMTP_USER || '', pass: process.env.SMTP_PASS || '' },
-  connectionTimeout: 15000,
-  greetingTimeout: 15000,
-  socketTimeout: 15000,
-});
+// SMTP(465/587)가 Railway 등 일부 클라우드 호스팅에서 통째로 막혀있는 경우가 많아서,
+// Resend의 HTTP API(HTTPS 요청)로 직접 보낸다 — AI API 호출과 동일한 방식이라 막힐 일이 없다.
+// RESEND_API_KEY가 없으면 기존 호환을 위해 SMTP_PASS 값을 그대로 사용한다 (Resend에서는 API 키와 SMTP 비밀번호가 같은 값).
+const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.SMTP_PASS || '';
 
 async function sendEmail(to, name, fortuneName, pdfBuffer, fileName) {
   const shortBody = `${name}님, 신청하신 "${fortuneName}" 풀이가 도착했어요.
@@ -397,22 +387,30 @@ async function sendEmail(to, name, fortuneName, pdfBuffer, fileName) {
 감사합니다.
 백도령 만세력 드림`;
 
-  if (!process.env.SMTP_USER) {
+  if (!RESEND_API_KEY) {
     console.log(`[이메일 미설정 - 콘솔 출력] to:${to}\n${shortBody}\n(PDF 첨부: ${fileName}, ${pdfBuffer.length} bytes)`);
     return;
   }
-  try {
-    await transporter.sendMail({
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
       from: `백도령 만세력 <${MAIL_FROM}>`,
-      to,
+      to: [to],
       subject: `[백도령 만세력] ${name}님의 ${fortuneName} 풀이가 도착했어요`,
       text: shortBody,
       html: `<div style="font-family:sans-serif; line-height:1.8; white-space:pre-wrap;">${shortBody}</div>`,
-      attachments: [{ filename: fileName, content: pdfBuffer }],
-    });
-  } catch (err) {
-    // SMTP 연결 관련 에러는 원인 파악이 어려워서, 로그에 좀 더 구체적인 정보를 남긴다
-    throw new Error(`[이메일 발송 실패] host=${process.env.SMTP_HOST || 'smtp.resend.com'} port=${process.env.SMTP_PORT || 465} — ${err.message}`);
+      attachments: [{ filename: fileName, content: pdfBuffer.toString('base64') }],
+    }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(`[이메일 발송 실패] Resend API ${res.status} — ${data.message || JSON.stringify(data)}`);
   }
 }
 
