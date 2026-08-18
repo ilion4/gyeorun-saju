@@ -139,8 +139,15 @@
   async function resend(orderId, btn) {
     btn.disabled = true; btn.textContent = '요청중...';
     const pw = localStorage.getItem(pwKey);
-    const res = await fetch(`/api/admin/orders/${orderId}/resend`, { method:'POST', headers: { 'x-admin-password': pw } });
-    if (res.ok) { setTimeout(load, 1200); } else { alert('재발송 요청 실패'); btn.disabled = false; btn.textContent = '재발송'; }
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/resend`, { method:'POST', headers: { 'x-admin-password': pw } });
+      if (res.ok) { setTimeout(load, 1200); return; }
+      const data = await res.json().catch(() => ({}));
+      alert('재발송 요청 실패: ' + (data.message || res.status));
+    } catch (err) {
+      alert('재발송 요청 실패 (네트워크 오류): ' + err.message);
+    }
+    btn.disabled = false; btn.textContent = '재발송';
   }
 </script>
 </body>

@@ -13,7 +13,7 @@ app.use(express.static('public'));
 const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY || 'test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const MAIL_FROM = process.env.MAIL_FROM || 'gyeorun@example.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
+const ADMIN_PASSWORD = (process.env.ADMIN_PASSWORD || '').trim();
 
 // -------------------- 무통장입금 계좌 정보 --------------------
 const BANK_NAME = process.env.BANK_NAME || '은행명 미설정';
@@ -419,7 +419,9 @@ function checkAdmin(req, res, next) {
   if (!ADMIN_PASSWORD) {
     return res.status(503).json({ message: '.env 에 ADMIN_PASSWORD를 설정해야 관리자 페이지를 쓸 수 있어요.' });
   }
-  if (req.get('x-admin-password') !== ADMIN_PASSWORD) {
+  const given = (req.get('x-admin-password') || '').trim();
+  if (given !== ADMIN_PASSWORD) {
+    console.warn(`[관리자 인증 실패] ${req.method} ${req.path} — 받은 값 길이 ${given.length} / 등록된 값 길이 ${ADMIN_PASSWORD.length}`);
     return res.status(401).json({ message: '비밀번호가 올바르지 않습니다.' });
   }
   next();
