@@ -375,12 +375,14 @@ function demoFortuneJson(order, isDeep) {
 }
 
 // -------------------- 4) 이메일 발송 --------------------
-// 465(SSL)은 일부 호스팅 환경에서 outbound가 막혀 몇 분씩 멈춰있다가 실패하는 경우가 있어
-// 15초 안에 빠르게 실패하도록 타임아웃을 짧게 잡는다 (재시도 주기를 낭비하지 않기 위함).
+// 465(암시적 TLS)는 일부 호스팅(Railway 포함) 환경에서 outbound가 막히는 경우가 있어서,
+// 더 널리 허용되는 587(STARTTLS)을 기본값으로 사용한다. SMTP_PORT로 언제든 덮어쓸 수 있음.
+const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.resend.com',
-  port: Number(process.env.SMTP_PORT) || 465,
-  secure: true,
+  port: SMTP_PORT,
+  secure: SMTP_PORT === 465, // 465면 암시적 TLS, 그 외(587 등)는 STARTTLS
+  requireTLS: SMTP_PORT !== 465,
   auth: { user: process.env.SMTP_USER || '', pass: process.env.SMTP_PASS || '' },
   connectionTimeout: 15000,
   greetingTimeout: 15000,
