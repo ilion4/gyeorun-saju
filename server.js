@@ -106,6 +106,13 @@ function checkBankdaSecret(req, res, next) {
   next();
 }
 
+// 뱅크다가 요구하는 "YYYY-MM-DD HH:mm:ss" (한국시간) 형식으로 변환
+function formatBankdaDate(ms) {
+  const kst = new Date(ms + 9 * 60 * 60 * 1000); // UTC -> KST 보정
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${kst.getUTCFullYear()}-${pad(kst.getUTCMonth() + 1)}-${pad(kst.getUTCDate())} ${pad(kst.getUTCHours())}:${pad(kst.getUTCMinutes())}:${pad(kst.getUTCSeconds())}`;
+}
+
 // 주문 1건을 뱅크다 규격(orders 배열의 원소 형태)으로 변환
 function toBankdaOrder(order) {
   return {
@@ -115,7 +122,7 @@ function toBankdaOrder(order) {
     bank_account_no: BANK_ACCOUNT_NO,
     bank_code_name: BANK_NAME,
     order_price_amount: order.fortune.price,
-    order_date: new Date(order.createdAt).toISOString(),
+    order_date: formatBankdaDate(order.createdAt),
     items: [{ product_name: order.fortune.name }],
   };
 }
