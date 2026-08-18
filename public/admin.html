@@ -25,6 +25,8 @@
   .status.failed { background:rgba(192,86,86,.15); color:var(--red); }
   .status.pending, .status.not_sent { background:rgba(201,162,75,.15); color:var(--gold); }
   .err { color:var(--red); font-size:11.5px; max-width:220px; white-space:normal; }
+  .orderid { font-family:'IBM Plex Mono', monospace; font-size:11px; cursor:pointer; color:var(--gold); }
+  .orderid:hover { text-decoration:underline; }
   .resend { background:var(--surface); border:1px solid var(--line); color:var(--ink); padding:6px 10px; border-radius:8px; font-size:12px; cursor:pointer; }
   .resend:hover { border-color: var(--gold); }
   .scroll { overflow-x:auto; }
@@ -49,7 +51,7 @@
   <div class="scroll">
     <table id="table" style="display:none;">
       <thead>
-        <tr><th>시간</th><th>이름</th><th>이메일</th><th>상품</th><th>결제</th><th>발송상태</th><th>시도</th><th>오류</th><th></th></tr>
+        <tr><th>주문번호</th><th>시간</th><th>이름</th><th>이메일</th><th>상품</th><th>결제</th><th>발송상태</th><th>시도</th><th>오류</th><th></th></tr>
       </thead>
       <tbody id="tbody"></tbody>
     </table>
@@ -112,6 +114,7 @@
 
     document.getElementById('tbody').innerHTML = orders.map(o => `
       <tr>
+        <td class="orderid" onclick="copyOrderId('${o.orderId}', this)" title="클릭하면 복사돼요">${o.orderId}</td>
         <td>${fmtTime(o.createdAt)}</td>
         <td>${o.name || '-'}</td>
         <td>${o.email || '-'}</td>
@@ -123,6 +126,14 @@
         <td>${o.paid && o.sendStatus !== 'sent' ? `<button class="resend" onclick="resend('${o.orderId}', this)">재발송</button>` : ''}</td>
       </tr>
     `).join('');
+  }
+
+  function copyOrderId(orderId, el) {
+    navigator.clipboard?.writeText(orderId).then(() => {
+      const prev = el.textContent;
+      el.textContent = '복사됨!';
+      setTimeout(() => (el.textContent = prev), 1000);
+    });
   }
 
   async function resend(orderId, btn) {
