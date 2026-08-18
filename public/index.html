@@ -104,6 +104,8 @@
   }
   input:focus, select:focus { outline: none; border-color: var(--gold); }
   .row2 { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .date-select-group { display:grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 8px; }
+  .date-select-group select { padding: 13px 8px; text-align:center; }
 
   .segmented { display:flex; background: var(--surface); border-radius:12px; padding:4px; border:1px solid #33335F; }
   .segmented button { flex:1; border:none; background:transparent; color: var(--ink-dim); padding:10px 0; border-radius:9px; font-size:13.5px; font-family:'Pretendard'; }
@@ -221,7 +223,14 @@
             <button type="button" class="cal-btn active" data-cal="solar">양력</button>
             <button type="button" class="cal-btn" data-cal="lunar">음력</button>
           </div>
-          <label class="field"><span class="lbl bdate-label">생년월일 (양력)</span><input type="date" class="bdate-input" id="bdate" /></label>
+          <label class="field"><span class="lbl bdate-label">생년월일 (양력)</span>
+            <div class="date-select-group">
+              <select class="date-year"></select>
+              <select class="date-month"></select>
+              <select class="date-day"></select>
+            </div>
+          </label>
+          <input type="hidden" class="bdate-input" id="bdate" />
           <label class="leap-check" style="display:none;"><input type="checkbox" class="leap-input" /> 윤달이에요</label>
 
           <p class="lbl" style="margin: 4px 0 8px;">태어난 시간</p>
@@ -245,7 +254,14 @@
             <button type="button" class="cal-btn active" data-cal="solar">양력</button>
             <button type="button" class="cal-btn" data-cal="lunar">음력</button>
           </div>
-          <label class="field"><span class="lbl bdate-label">생년월일 (양력)</span><input type="date" class="bdate-input" id="pbdate" /></label>
+          <label class="field"><span class="lbl bdate-label">생년월일 (양력)</span>
+            <div class="date-select-group">
+              <select class="date-year"></select>
+              <select class="date-month"></select>
+              <select class="date-day"></select>
+            </div>
+          </label>
+          <input type="hidden" class="bdate-input" id="pbdate" />
           <label class="leap-check" style="display:none;"><input type="checkbox" class="leap-input" /> 윤달이에요</label>
 
           <p class="lbl" style="margin: 4px 0 8px;">태어난 시간 (모르면 &lsquo;모름&rsquo;)</p>

@@ -168,6 +168,52 @@ const SIJIN = [
   { branch: '해시', range: '21:00~23:00', repHour: 22 },
 ];
 
+// ---------- 생년월일 드롭다운(년/월/일) 초기화 ----------
+function initDateSelects(block) {
+  const yearSel = block.querySelector('.date-year');
+  const monthSel = block.querySelector('.date-month');
+  const daySel = block.querySelector('.date-day');
+  const hiddenInput = block.querySelector('.bdate-input');
+
+  const thisYear = new Date().getFullYear();
+  yearSel.innerHTML = '<option value="">년</option>' +
+    Array.from({ length: 100 }, (_, i) => thisYear - i)
+      .map((y) => `<option value="${y}">${y}년</option>`).join('');
+
+  monthSel.innerHTML = '<option value="">월</option>' +
+    Array.from({ length: 12 }, (_, i) => i + 1)
+      .map((m) => `<option value="${m}">${m}월</option>`).join('');
+
+  function daysInMonth(year, month) {
+    if (!year || !month) return 31;
+    return new Date(Number(year), Number(month), 0).getDate();
+  }
+
+  function renderDays() {
+    const prevSelected = daySel.value;
+    const max = daysInMonth(yearSel.value, monthSel.value);
+    daySel.innerHTML = '<option value="">일</option>' +
+      Array.from({ length: max }, (_, i) => i + 1)
+        .map((d) => `<option value="${d}">${d}일</option>`).join('');
+    if (prevSelected && Number(prevSelected) <= max) daySel.value = prevSelected;
+  }
+  renderDays();
+
+  function syncHidden() {
+    const y = yearSel.value, m = monthSel.value, d = daySel.value;
+    if (y && m && d) {
+      hiddenInput.value = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    } else {
+      hiddenInput.value = '';
+    }
+  }
+
+  yearSel.addEventListener('change', () => { renderDays(); syncHidden(); });
+  monthSel.addEventListener('change', () => { renderDays(); syncHidden(); });
+  daySel.addEventListener('change', syncHidden);
+}
+document.querySelectorAll('.person-block').forEach(initDateSelects);
+
 // ---------- 본인/상대방 입력 블록 초기화 (양력↔음력, 시간모드, 시진선택) ----------
 document.querySelectorAll('.person-block').forEach((block) => {
   // 양력/음력 토글
