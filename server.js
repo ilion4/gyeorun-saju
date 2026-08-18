@@ -229,17 +229,23 @@ ${focusNote ? focusNote + '\n' : ''}${isDeep ? `- sections는 아래 4개 구성
 - 미신적 확신("반드시 ~됩니다") 대신 "~한 흐름이 보입니다" 톤 유지
 - 지정된 분량을 정확히 채우되 내용을 억지로 반복하거나 늘리지 말 것`;
 
+    console.log(`[1/3 AI 풀이 생성 시작] ${orderId}`);
     const rawResponse = ANTHROPIC_API_KEY ? await callClaude(prompt, maxTokens) : demoFortuneJson(order, isDeep);
     const content = parseFortuneJson(rawResponse);
+    console.log(`[1/3 AI 풀이 생성 완료] ${orderId}`);
 
     const sajuMeta = buildSajuMeta(order.self);
+    console.log(`[2/3 PDF 생성 시작] ${orderId}`);
     const pdfBuffer = await generateFortunePdf({ order, saju: sajuMeta, content });
+    console.log(`[2/3 PDF 생성 완료] ${orderId}`);
     // 파일명에 못 쓰는 문자(/, \, :, * 등)가 상품명에 섞여 있어도 안전하도록 정리
     // (예: "애정운/결혼운" → "애정운_결혼운")
     const safeProductName = productName.replace(/[\\/:*?"<>|]/g, '_');
     const fileName = `백도령만세력_${order.self.name}_${safeProductName}.pdf`;
 
+    console.log(`[3/3 이메일 발송 시작] ${orderId}`);
     await sendEmail(order.email, order.self.name, order.fortune.name, pdfBuffer, fileName);
+    console.log(`[3/3 이메일 발송 완료] ${orderId}`);
 
     store.updateOrder(orderId, { sendStatus: 'sent', sentAt: Date.now(), lastError: null, nextRetryAt: null });
     console.log(`[발송 성공] ${orderId}`);
@@ -369,11 +375,16 @@ function demoFortuneJson(order, isDeep) {
 }
 
 // -------------------- 4) 이메일 발송 --------------------
+// 465(SSL)은 일부 호스팅 환경에서 outbound가 막혀 몇 분씩 멈춰있다가 실패하는 경우가 있어
+// 15초 안에 빠르게 실패하도록 타임아웃을 짧게 잡는다 (재시도 주기를 낭비하지 않기 위함).
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.resend.com',
   port: Number(process.env.SMTP_PORT) || 465,
   secure: true,
   auth: { user: process.env.SMTP_USER || '', pass: process.env.SMTP_PASS || '' },
+  connectionTimeout: 15000,
+  greetingTimeout: 15000,
+  socketTimeout: 15000,
 });
 
 async function sendEmail(to, name, fortuneName, pdfBuffer, fileName) {
@@ -388,14 +399,19 @@ async function sendEmail(to, name, fortuneName, pdfBuffer, fileName) {
     console.log(`[이메일 미설정 - 콘솔 출력] to:${to}\n${shortBody}\n(PDF 첨부: ${fileName}, ${pdfBuffer.length} bytes)`);
     return;
   }
-  await transporter.sendMail({
-    from: `백도령 만세력 <${MAIL_FROM}>`,
-    to,
-    subject: `[백도령 만세력] ${name}님의 ${fortuneName} 풀이가 도착했어요`,
-    text: shortBody,
-    html: `<div style="font-family:sans-serif; line-height:1.8; white-space:pre-wrap;">${shortBody}</div>`,
-    attachments: [{ filename: fileName, content: pdfBuffer }],
-  });
+  try {
+    await transporter.sendMail({
+      from: `백도령 만세력 <${MAIL_FROM}>`,
+      to,
+      subject: `[백도령 만세력] ${name}님의 ${fortuneName} 풀이가 도착했어요`,
+      text: shortBody,
+      html: `<div style="font-family:sans-serif; line-height:1.8; white-space:pre-wrap;">${shortBody}</div>`,
+      attachments: [{ filename: fileName, content: pdfBuffer }],
+    });
+  } catch (err) {
+    // SMTP 연결 관련 에러는 원인 파악이 어려워서, 로그에 좀 더 구체적인 정보를 남긴다
+    throw new Error(`[이메일 발송 실패] host=${process.env.SMTP_HOST || 'smtp.resend.com'} port=${process.env.SMTP_PORT || 465} — ${err.message}`);
+  }
 }
 
 // -------------------- 5) 관리자: 발송 로그 조회 / 수동 재발송 --------------------
