@@ -169,6 +169,13 @@
     box-shadow: 0 0 0 4px rgba(201,162,75,.08), 0 10px 30px -10px rgba(0,0,0,.6);
   }
   .hero-video-wrap video { width:100%; height:100%; object-fit: cover; display:block; }
+
+  .today-fortune-link {
+    display:block; text-align:center; margin: 0 0 18px; padding: 11px 14px;
+    background: var(--surface-2); border:1px solid var(--gold); border-radius: 12px;
+    color: var(--gold-soft); font-size:13.5px; font-weight:700; text-decoration:none;
+    backdrop-filter: blur(14px);
+  }
 </style>
 </head>
 <body>
@@ -197,6 +204,7 @@
       </div>
       <h1 class="title">무엇이 궁금하신가요?</h1>
       <p class="sub">만세력을 바탕으로 상세히 풀이해 드립니다.</p>
+      <a href="/today.html" class="today-fortune-link">🔮 오늘의 띠별 운세 무료로 보기</a>
       <div class="grid" id="fortuneGrid"></div>
 
       <div id="tierPanel" class="tier-panel" style="display:none;">

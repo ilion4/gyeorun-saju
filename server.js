@@ -4,6 +4,7 @@ const { getSaju } = require('./lib/saju.js');
 const store = require('./lib/store.js');
 const KoreanLunarCalendar = require('korean-lunar-calendar');
 const { generateFortunePdf } = require('./lib/pdf.js');
+const { getTodayFortune } = require('./lib/today-fortune.js');
 
 const app = express();
 app.use(express.json());
@@ -44,6 +45,17 @@ app.post('/api/lunar-to-solar', (req, res) => {
 // -------------------- 0-1) 무통장입금 계좌 안내 --------------------
 app.get('/api/bank-info', (req, res) => {
   res.json({ bankName: BANK_NAME, accountNo: BANK_ACCOUNT_NO, holder: BANK_HOLDER });
+});
+
+// -------------------- 0-2) 오늘의 운세 (무료 코너, 하루 1회만 AI 호출) --------------------
+app.get('/api/today-fortune', async (req, res) => {
+  try {
+    const data = await getTodayFortune(callClaude, !!ANTHROPIC_API_KEY);
+    res.json(data);
+  } catch (err) {
+    console.error('[오늘의운세 생성 실패]', err.message);
+    res.status(500).json({ message: '오늘의 운세를 불러오지 못했어요. 잠시 후 다시 시도해주세요.' });
+  }
 });
 
 // -------------------- 1) 주문 생성 --------------------

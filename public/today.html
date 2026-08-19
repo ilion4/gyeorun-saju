@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>오늘의 운세 — 백도령 만세력</title>
+<meta name="theme-color" content="#12122A" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700;900&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #12122A; --surface: rgba(27,27,61,.60); --surface-2: rgba(35,35,75,.78);
+    --paper: #F3ECDD; --gold: #C9A24B; --gold-soft: #E7CE8F;
+    --ink: #ECE6D6; --ink-dim: #A9A6C4; --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      linear-gradient(180deg, rgba(10,10,26,.55) 0%, rgba(10,10,26,.35) 30%, rgba(8,8,20,.75) 78%, rgba(6,6,16,.92) 100%),
+      url('/media/bg.jpg');
+    background-size: cover; background-position: center top; background-attachment: fixed; background-color: var(--bg);
+    color: var(--ink); font-family: 'Pretendard', -apple-system, sans-serif;
+    min-height: 100dvh; display:flex; justify-content:center; -webkit-font-smoothing: antialiased;
+  }
+  #app { width:100%; max-width:480px; padding: 24px 20px 60px; min-height:100dvh; }
+  .brand { font-family:'Noto Serif KR', serif; font-weight:900; font-size:15px; color: var(--gold-soft); text-align:center; margin-bottom:6px; letter-spacing:.02em; }
+  h1.title { font-family:'Noto Serif KR', serif; font-size:22px; font-weight:900; text-align:center; margin: 6px 0 4px; color: var(--paper); }
+  p.sub { text-align:center; font-size:13px; color: var(--ink-dim); margin: 0 0 22px; }
+  .date-badge { display:block; text-align:center; font-family:'Pretendard'; font-size:12px; color: var(--gold-soft); margin-bottom:18px; }
+
+  .zodiac-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom: 24px; }
+  .zodiac-btn {
+    background: var(--surface); border:1px solid #33335F; border-radius: 14px;
+    padding: 14px 4px; text-align:center; cursor:pointer; backdrop-filter: blur(14px);
+  }
+  .zodiac-btn .emoji { font-size:22px; display:block; margin-bottom:4px; }
+  .zodiac-btn .name { font-size:12px; color: var(--ink); font-weight:600; }
+  .zodiac-btn.selected { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); background: var(--surface-2); }
+
+  #result { display:none; }
+  .summary-card {
+    background: var(--surface-2); border:1px solid var(--gold); border-radius: var(--radius);
+    padding: 18px 18px; margin-bottom: 18px; backdrop-filter: blur(14px);
+  }
+  .summary-card .animal-name { font-family:'Noto Serif KR', serif; font-weight:900; font-size:17px; color: var(--gold-soft); margin-bottom:8px; }
+  .summary-card .summary-text { font-size:14px; line-height:1.7; color: var(--ink); }
+
+  .year-list { display:flex; flex-direction:column; gap:8px; margin-bottom: 26px; }
+  .year-row {
+    display:flex; align-items:center; gap:10px; background: var(--surface); border:1px solid #33335F;
+    border-radius: 12px; padding: 11px 14px; backdrop-filter: blur(14px);
+  }
+  .year-row .year-tag {
+    font-family:'IBM Plex Mono', monospace; font-size:12.5px; font-weight:700; color:#1B1520;
+    background: linear-gradient(135deg,#E7CE8F,#C9A24B); padding: 4px 8px; border-radius:8px; flex-shrink:0;
+  }
+  .year-row .tip-text { font-size:13.5px; color: var(--ink); line-height:1.5; }
+
+  .cta-box { text-align:center; padding: 22px 16px; border-radius: var(--radius); background: var(--surface-2); border:1px solid var(--gold); backdrop-filter: blur(14px); }
+  .cta-box p { font-size:13px; color: var(--ink-dim); margin: 0 0 14px; line-height:1.6; }
+  .cta-btn {
+    display:inline-block; background: linear-gradient(135deg,#E7CE8F,#C9A24B); color:#1B1520; font-weight:800;
+    font-size:14.5px; padding: 13px 28px; border-radius: 12px; text-decoration:none;
+  }
+  .loading { text-align:center; color: var(--ink-dim); font-size:13px; padding: 40px 0; }
+  .back-link { display:block; text-align:center; margin-top:26px; color: var(--ink-dim); font-size:12.5px; text-decoration:none; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="brand">백도령 만세력</div>
+  <h1 class="title">오늘의 띠별 운세</h1>
+  <p class="sub">태어난 해의 띠를 골라보세요 · 무료</p>
+  <span class="date-badge" id="dateBadge"></span>
+
+  <div class="zodiac-grid" id="zodiacGrid"></div>
+
+  <div id="loadingMsg" class="loading">오늘의 운세를 불러오는 중...</div>
+
+  <div id="result">
+    <div class="summary-card">
+      <div class="animal-name" id="animalName"></div>
+      <div class="summary-text" id="summaryText"></div>
+    </div>
+    <div class="year-list" id="yearList"></div>
+    <div class="cta-box">
+      <p>여기서는 띠 전체를 위한 오늘의 흐름만 보여드려요.<br/>사주 8자를 바탕으로 한 나만의 정확한 풀이가 궁금하다면?</p>
+      <a class="cta-btn" href="/">내 사주 풀이 보러 가기</a>
+    </div>
+  </div>
+
+  <a class="back-link" href="/">← 메인으로 돌아가기</a>
+</div>
+
+<script>
+const ZODIAC_META = [
+  { key:'rat', name:'쥐띠', emoji:'🐭' },
+  { key:'ox', name:'소띠', emoji:'🐮' },
+  { key:'tiger', name:'호랑이띠', emoji:'🐯' },
+  { key:'rabbit', name:'토끼띠', emoji:'🐰' },
+  { key:'dragon', name:'용띠', emoji:'🐲' },
+  { key:'snake', name:'뱀띠', emoji:'🐍' },
+  { key:'horse', name:'말띠', emoji:'🐴' },
+  { key:'goat', name:'양띠', emoji:'🐑' },
+  { key:'monkey', name:'원숭이띠', emoji:'🐵' },
+  { key:'rooster', name:'닭띠', emoji:'🐔' },
+  { key:'dog', name:'개띠', emoji:'🐶' },
+  { key:'pig', name:'돼지띠', emoji:'🐷' },
+];
+
+const grid = document.getElementById('zodiacGrid');
+ZODIAC_META.forEach((z) => {
+  const btn = document.createElement('div');
+  btn.className = 'zodiac-btn';
+  btn.innerHTML = `<span class="emoji">${z.emoji}</span><span class="name">${z.name}</span>`;
+  btn.addEventListener('click', () => selectAnimal(z.key, btn));
+  grid.appendChild(btn);
+});
+
+let fortuneData = null;
+
+async function loadData() {
+  try {
+    const res = await fetch('/api/today-fortune');
+    fortuneData = await res.json();
+    document.getElementById('loadingMsg').style.display = 'none';
+    if (fortuneData.date) {
+      const [y, m, d] = fortuneData.date.split('-');
+      document.getElementById('dateBadge').textContent = `${y}년 ${Number(m)}월 ${Number(d)}일`;
+    }
+  } catch (err) {
+    document.getElementById('loadingMsg').textContent = '운세를 불러오지 못했어요. 새로고침 해주세요.';
+  }
+}
+loadData();
+
+function selectAnimal(key, btnEl) {
+  document.querySelectorAll('.zodiac-btn').forEach((b) => b.classList.remove('selected'));
+  btnEl.classList.add('selected');
+
+  if (!fortuneData) return;
+  const animal = fortuneData.animals[key];
+  const meta = fortuneData.meta[key];
+  if (!animal || !meta) return;
+
+  document.getElementById('animalName').textContent = `${meta.name} 오늘의 운세`;
+  document.getElementById('summaryText').textContent = animal.summary;
+
+  const yearList = document.getElementById('yearList');
+  yearList.innerHTML = '';
+  meta.years.forEach((y) => {
+    const tip = animal.years[y] || animal.years[String(y)] || '';
+    if (!tip) return;
+    const row = document.createElement('div');
+    row.className = 'year-row';
+    row.innerHTML = `<span class="year-tag">${y}년생</span><span class="tip-text">${tip}</span>`;
+    yearList.appendChild(row);
+  });
+
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>
