@@ -133,8 +133,8 @@ function selectFixedPriceFortune(f) {
     price: f.fixedPrice,
     tierKey: 'deep',       // 서버 프롬프트가 "심도" 구조(4섹션+12항목)를 그대로 쓰도록
     tierLabel: '',
-    charMin: 11600,          // 총 10쪽(표지+목차+본문8장)에 맞춰 실측 캘리브레이션한 값
-    charMax: 12100,
+    charMin: 11000,          // 총 10~11쪽(표지+목차+본문8~9장)에 맞춰 실측 캘리브레이션한 값
+    charMax: 12500,
     maxTokens: 9500,
     totalPages: 10,
   };
