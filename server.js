@@ -71,7 +71,7 @@ app.post('/api/track', (req, res) => {
 
 // -------------------- 1) 주문 생성 --------------------
 app.post('/api/orders', (req, res) => {
-  const { orderId, fortune, self, partner, email, depositorName } = req.body;
+  const { orderId, fortune, self, partner, email, depositorName, dateSelection } = req.body;
   if (!orderId || !fortune || !self || !email) {
     return res.status(400).json({ message: '주문 정보가 올바르지 않습니다.' });
   }
@@ -79,7 +79,7 @@ app.post('/api/orders', (req, res) => {
   if (!depositorName) {
     return res.status(400).json({ message: '입금자명을 입력해주세요.' });
   }
-  store.createOrder(orderId, { fortune, self, partner, email, depositorName, paymentMethod: 'bank_transfer' });
+  store.createOrder(orderId, { fortune, self, partner, email, depositorName, dateSelection, paymentMethod: 'bank_transfer' });
   res.json({ ok: true });
 });
 
@@ -208,16 +208,81 @@ async function generateAndSend(orderId) {
     const maxTokens = Math.ceil((order.fortune.maxTokens || 3600) * 1.4) + 500;
     const isDeep = order.fortune.tierKey === 'deep';
     const productName = order.fortune.baseName || order.fortune.name;
+    const isDateSelection = order.fortune.id === 'dates';
+    const isLifetime = order.fortune.id === 'lifetime';
+
+    let prompt;
+
+    if (isDateSelection) {
+      // 택일은 sections 외에 추천/비추천 날짜 목록도 페이지를 차지하므로,
+      // 다른 상품(charMin/charMax)보다 본문 자리수를 약간 줄여야 같은 5쪽/8쪽에 맞음 (실측으로 캘리브레이션한 값)
+      const dsCharMin = isDeep ? 5800 : 2800;
+      const dsCharMax = isDeep ? 6600 : 4000;
+      const purpose = order.dateSelection?.purpose || '결혼';
+      const rangeMonths = order.dateSelection?.rangeMonths || 1;
+      const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
+      const pad = (x) => String(x).padStart(2, '0');
+      const todayStr = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())}`;
+      const end = new Date(now);
+      end.setUTCMonth(end.getUTCMonth() + rangeMonths);
+      const endStr = `${end.getUTCFullYear()}-${pad(end.getUTCMonth() + 1)}-${pad(end.getUTCDate())}`;
+      const dateCount = isDeep ? 14 : 6;
+      const avoidCount = isDeep ? 4 : 0;
+
+      prompt = `당신은 30년 경력의 사주 명리학 상담가이자 택일(擇日) 전문가입니다. 아래 사주 정보를 바탕으로 "${purpose}"에 좋은 날짜를 추천하세요. 오늘은 ${todayStr}이고, ${endStr}까지의 기간 안에서 날짜를 추천해야 합니다. 이 결과는 PDF 리포트(A4, 표지·목차 포함 총 ${isDeep ? '8' : '5'}쪽 분량)로 만들어지므로, 반드시 아래 JSON 형식으로만 응답하세요. JSON 앞뒤로 다른 설명이나 마크다운 코드블록(\`\`\`)을 절대 넣지 마세요.
+
+${selfSaju}
+
+응답 JSON 스키마:
+{
+  "subtitle": "표지에 들어갈 한 줄 요약, 25자 이내",
+  "sections": [
+    { "heading": "소제목", "body": "본문 (문단이 여러 개면 \\n\\n으로 구분)" }
+  ],
+  "recommendedDates": [ { "date": "YYYY-MM-DD", "reason": "이 날짜를 추천하는 짧은 이유, 12~20자" }, ... 총 ${dateCount}개 ],
+  ${isDeep ? `"avoidDates": [ { "date": "YYYY-MM-DD", "reason": "피해야 하는 짧은 이유, 12~20자" }, ... 총 ${avoidCount}개 ],
+  ` : ''}"closing": "마무리 총평"
+}
+
+분량 지침 (아래 자리수를 반드시 지킬 것 — 페이지 수가 정확히 맞아야 함):
+- sections 본문 텍스트 합계: ${dsCharMin}~${dsCharMax}자 (공백 포함, 소제목 글자는 제외)
+- closing: ${isDeep ? '200~260자' : '120~180자'}
+- recommendedDates는 반드시 ${todayStr}부터 ${endStr} 사이의 실제 존재하는 달력 날짜로만, 날짜가 겹치지 않게 ${dateCount}개 작성 (기간 전체에 고르게 분산시킬 것)
+${isDeep ? `- avoidDates도 같은 기간 안에서 ${avoidCount}개 작성 (recommendedDates와 겹치지 않게)` : ''}
+- 빈 문장이나 늘어지는 수사로 채우지 말고, 지정된 자리수 안에서 내용을 실제로 촘촘하게 채울 것
+
+작성 지침:
+- 존댓말, 따뜻하지만 구체적인 어조
+- 한자(漢字)는 절대 쓰지 말 것 — 오행(목·화·토·금·수), 육친 등 명리학 용어도 반드시 한글로만 표기 (PDF 폰트가 한자를 지원하지 않아 깨져 보임)
+- sections는 ${isDeep ? '4개' : '2개'} 구성:
+  1) 사주로 보는 나에게 맞는 좋은 날의 기준 (원국에서 부족하거나 강한 기운을 짚어 어떤 기운을 보완하는 날이 좋은지)
+  2) 택일의 기본 원리 해설 (어떤 기준으로 좋은 날/피해야 할 날을 가리는지, 쉽게 풀어서)
+  ${isDeep ? `3) "${purpose}" 준비 시 함께 참고하면 좋은 점 (시간대, 방향, 준비물 등 실용적 조언)
+  4) 전체적으로 주의할 점` : ''}
+- recommendedDates의 reason은 각 날짜마다 다르게, 왜 그날이 좋은지 구체적으로 (예: "새로운 시작에 좋은 기운" 처럼 뭉뚱그리지 말고 사주와 연결지어 작성)
+- 추상적인 말 대신 실제 준비에 도움되는 구체적 조언 포함
+- 미신적 확신("반드시 ~됩니다") 대신 "~한 흐름이 보입니다" 톤 유지
+- 지정된 분량을 정확히 채우되 내용을 억지로 반복하거나 늘리지 말 것`;
+    } else {
 
     // 상품별로 AI가 놓치기 쉬운 세부 주제를 명시적으로 짚어주는 보강 지침.
     // (예: "애정운/결혼운"은 이름에 결혼이 들어가 있어도 AI가 연애 위주로만 쓰는 경우가 있어 별도로 강조)
     const FORTUNE_FOCUS_NOTES = {
       love: '- "애정운/결혼운" 상품이므로 연애 흐름만이 아니라 결혼 관련 내용도 반드시 함께 다룰 것: 결혼 시기·배우자 인연이 들어오는 흐름, (기혼자라면) 결혼 생활의 흐름과 유의할 점까지 포함',
       compat: '- 두 사람의 궁합뿐 아니라 관계가 결혼까지 이어질 경우의 흐름도 함께 언급할 것',
+      lifetime: '- "평생사주" 상품이므로 특정 주제(연애/재물 등)에 치우치지 말고, 성격·재물·직업·인간관계·건강을 고루 다루는 인생 전체 총론으로 작성할 것',
     };
     const focusNote = FORTUNE_FOCUS_NOTES[order.fortune.id] || '';
 
-    const prompt = `당신은 30년 경력의 사주 명리학 상담가입니다. 아래 사주 정보를 바탕으로 "${productName}" 풀이를 작성하세요. 이 결과는 PDF 리포트(A4, 표지·목차 포함 총 ${isDeep ? '8' : '5'}쪽 분량)로 만들어지므로, 반드시 아래 JSON 형식으로만 응답하세요. JSON 앞뒤로 다른 설명이나 마크다운 코드블록(\`\`\`)을 절대 넣지 마세요.
+    // "평생사주"는 이번 해 12개월이 아니라, 인생 전체를 12구간으로 나눠 보여주는 게 자연스럽다.
+    // JSON 키(monthly)는 그대로 두고 — PDF 렌더링/파싱 코드가 이 키를 그대로 찾기 때문 —
+    // 안에 들어가는 "month" 라벨 값만 "1월~12월" 대신 아래 12개 인생 시기로 바꿔서 요청한다.
+    const LIFE_STAGES = ['유년기(0~9세)', '청소년기(10대)', '20대 초반', '20대 후반', '30대 초반', '30대 후반', '40대', '50대', '60대', '70대', '80대', '말년'];
+    const monthlyKeyName = isLifetime ? '인생 시기별 흐름(monthly)' : '월별운세(monthly)';
+    const monthlyItemLabel = isLifetime ? '시기(예: "20대 초반")' : '월(예: "1월")';
+    const monthlyExampleList = isLifetime ? LIFE_STAGES.map((s) => `"${s}"`).join(', ') : '"1월"부터 "12월"까지';
+
+    prompt = `당신은 30년 경력의 사주 명리학 상담가입니다. 아래 사주 정보를 바탕으로 "${productName}" 풀이를 작성하세요. 이 결과는 PDF 리포트(A4, 표지·목차 포함 총 ${isDeep ? '8' : '5'}쪽 분량)로 만들어지므로, 반드시 아래 JSON 형식으로만 응답하세요. JSON 앞뒤로 다른 설명이나 마크다운 코드블록(\`\`\`)을 절대 넣지 마세요.
 
 ${selfSaju}
 ${partnerSaju}
@@ -228,13 +293,13 @@ ${partnerSaju}
   "sections": [
     { "heading": "소제목", "body": "본문 (문단이 여러 개면 \\n\\n으로 구분)" }
   ],
-  ${isDeep ? `"monthly": [ { "month": "1월", "text": "그 달의 흐름과 조언" }, ... 1월부터 12월까지 총 12개 항목 ],
+  ${isDeep ? `"monthly": [ { "month": "${monthlyItemLabel}", "text": "그 ${isLifetime ? '시기의' : '달의'} 흐름과 조언" }, ... ${monthlyExampleList} 총 12개 항목 ],
   ` : ''}"closing": "마무리 총평"
 }
 
 분량 지침 (아래 자리수를 반드시 지킬 것 — 페이지 수가 정확히 맞아야 함):
 - sections 본문 텍스트 합계: ${charMin}~${charMax}자 (공백 포함, 소제목 글자는 제외)
-${isDeep ? `- monthly 각 항목: 70~85자씩, 12개 전부 채울 것 (합계 약 840~1,020자)
+${isDeep ? `- ${monthlyKeyName} 각 항목: 70~85자씩, 12개 전부 채울 것 (합계 약 840~1,020자)
 - closing: 200~260자` : `- closing: 120~180자`}
 - 빈 문장이나 늘어지는 수사로 채우지 말고, 지정된 자리수 안에서 내용을 실제로 촘촘하게 채울 것 (여백 없이 알찬 문장으로)
 
@@ -244,16 +309,18 @@ ${isDeep ? `- monthly 각 항목: 70~85자씩, 12개 전부 채울 것 (합계 �
 ${focusNote ? focusNote + '\n' : ''}${isDeep ? `- sections는 아래 4개 구성으로 작성:
   1) 타고난 사주 원국 풀이 (일간 중심 성향 분석)
   2) ${productName}와 직접 관련된 심층 해석
-  3) 올해~내년 흐름 (대운/세운 관점, 시기별 조언)
+  3) ${isLifetime ? '인생 전체를 관통하는 흐름 (대운 관점)' : '올해~내년 흐름 (대운/세운 관점, 시기별 조언)'}
   4) 주의할 점과 활용하면 좋은 점
-- monthly는 반드시 1월부터 12월까지 12개 모두 채울 것` : `- sections는 3개로 구성 (예: ①타고난 성향과 사주 원국 ②${productName} 심층 해석 ③주의할 점과 활용하면 좋은 점), 소제목도 함께 작성`}
+- ${monthlyKeyName}는 반드시 12개 모두, ${isLifetime ? '위에 제시된 12개 인생 시기 그대로' : '1월부터 12월까지'} 채울 것` : `- sections는 3개로 구성 (예: ①타고난 성향과 사주 원국 ②${productName} 심층 해석 ③주의할 점과 활용하면 좋은 점), 소제목도 함께 작성`}
 - 추상적인 말 대신 실제 생활에 적용 가능한 구체적 조언 포함
 - 미신적 확신("반드시 ~됩니다") 대신 "~한 흐름이 보입니다" 톤 유지
 - 지정된 분량을 정확히 채우되 내용을 억지로 반복하거나 늘리지 말 것`;
+    }
 
     console.log(`[1/3 AI 풀이 생성 시작] ${orderId}`);
     const rawResponse = ANTHROPIC_API_KEY ? await callClaude(prompt, maxTokens) : demoFortuneJson(order, isDeep);
     const content = parseFortuneJson(rawResponse);
+    if (isLifetime) content.monthlyLabel = '인생 시기별 흐름'; // PDF 섹션 제목용 (AI가 정하는 게 아니라 서버가 고정으로 지정)
     console.log(`[1/3 AI 풀이 생성 완료] ${orderId}`);
 
     const sajuMeta = buildSajuMeta(order.self);

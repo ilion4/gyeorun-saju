@@ -82,6 +82,11 @@
   .fortune-card:active { transform: scale(.97); }
   .fortune-card.selected { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold), 0 8px 24px -8px rgba(201,162,75,.5); }
 
+  .fortune-card-fallback { align-items:center; justify-content:center; text-align:center; gap:6px; background: linear-gradient(160deg, var(--surface-2), var(--surface)); }
+  .fortune-card-fallback .fc-emoji { font-size:30px; }
+  .fortune-card-fallback .fc-name { font-weight:700; font-size:14.5px; color:#fff; }
+  .fortune-card-fallback .fc-price { font-size:12px; color: var(--gold-soft); font-family:'IBM Plex Mono'; }
+
   .tier-panel { margin-top: 18px; padding-top: 4px; animation: fadeUp .35s ease; }
   .tier-panel-title { font-family:'Noto Serif KR'; font-size:14.5px; color: var(--gold-soft); margin: 0 0 10px; }
   .tier-options { display:flex; flex-direction:column; gap:10px; }
@@ -285,6 +290,24 @@
           </div>
           <div class="time-exact-wrap"><input type="time" class="btime-input" id="pbtime" /></div>
           <div class="time-sijin-wrap sijin-grid" style="display:none;"></div>
+        </div>
+      </fieldset>
+
+      <fieldset id="dateSelectionFieldset" style="display:none;">
+        <legend>택일 정보</legend>
+        <p class="lbl" style="margin: 4px 0 8px;">어떤 일의 좋은 날을 찾으세요?</p>
+        <div class="segmented purpose-toggle">
+          <button type="button" class="purpose-btn active" data-purpose="결혼">결혼</button>
+          <button type="button" class="purpose-btn" data-purpose="이사">이사</button>
+          <button type="button" class="purpose-btn" data-purpose="개업">개업</button>
+        </div>
+
+        <p class="lbl" style="margin: 16px 0 8px;">언제쯤 하고 싶으세요?</p>
+        <div class="segmented range-toggle">
+          <button type="button" class="range-btn active" data-range="1">1개월 이내</button>
+          <button type="button" class="range-btn" data-range="3">3개월 이내</button>
+          <button type="button" class="range-btn" data-range="6">6개월 이내</button>
+          <button type="button" class="range-btn" data-range="12">1년 이내</button>
         </div>
       </fieldset>
 

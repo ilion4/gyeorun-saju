@@ -22,6 +22,8 @@ const FORTUNES = [
   { id: 'love',    name: '애정운/결혼운', img: '/media/fortune-love.jpg',    priceBrief: 4900,  priceDeep: 9900, desc: '지금 내 연애와 결혼의 흐름' },
   { id: 'money',   name: '재물운', img: '/media/fortune-money.jpg',   priceBrief: 4900,  priceDeep: 9900, desc: '돈이 들어오고 나가는 흐름' },
   { id: 'career',  name: '취업/사업운', img: '/media/fortune-career.jpg', priceBrief: 4900, priceDeep: 9900, desc: '일과 커리어의 방향' },
+  { id: 'dates',   name: '택일',   img: null, emoji: '📅', priceBrief: 4900, priceDeep: 9900, desc: '결혼·이사·개업 좋은 날짜 추천', needsDateSelection: true },
+  { id: 'lifetime', name: '평생사주', img: null, emoji: '🌳', priceBrief: 4900, priceDeep: 9900, desc: '타고난 사주로 보는 인생 전체 흐름' },
 ];
 
 const state = {
@@ -94,11 +96,17 @@ function getSaju(year, month, day, hour, minute = 0) {
 
 // ---------- 렌더: 운세 카드 ----------
 // 카드 이미지 자체에 상품명·가격이 이미 디자인되어 있어 별도 텍스트를 얹지 않는다.
+// (img가 없는 신규 상품은 디자인 이미지 준비 전까지 이모지+텍스트로 임시 표시)
 const grid = document.getElementById('fortuneGrid');
 FORTUNES.forEach((f) => {
   const el = document.createElement('div');
   el.className = 'fortune-card';
-  el.style.backgroundImage = `url('${f.img}')`;
+  if (f.img) {
+    el.style.backgroundImage = `url('${f.img}')`;
+  } else {
+    el.classList.add('fortune-card-fallback');
+    el.innerHTML = `<span class="fc-emoji">${f.emoji || '🔮'}</span><span class="fc-name">${f.name}</span><span class="fc-price">${f.priceBrief.toLocaleString()}원~</span>`;
+  }
   el.setAttribute('aria-label', `${f.name} ${f.priceBrief.toLocaleString()}원부터`);
   el.addEventListener('click', () => {
     document.querySelectorAll('.fortune-card').forEach((c) => c.classList.remove('selected'));
@@ -131,6 +139,7 @@ function showTierPanel(f) {
         baseName: f.name,
         name: `${f.name} (${tier.label})`,
         needsPartner: f.needsPartner,
+        needsDateSelection: f.needsDateSelection,
         price,
         tierKey: tier.key,
         tierLabel: tier.label,
@@ -140,6 +149,7 @@ function showTierPanel(f) {
       };
       document.getElementById('partnerFieldset').style.display = f.needsPartner ? 'block' : 'none';
       document.getElementById('legend-self').textContent = f.needsPartner ? '본인 정보' : '내 정보';
+      document.getElementById('dateSelectionFieldset').style.display = f.needsDateSelection ? 'block' : 'none';
       goTo(2);
     });
     return btn;
@@ -214,6 +224,23 @@ function initDateSelects(block) {
   daySel.addEventListener('change', syncHidden);
 }
 document.querySelectorAll('.person-block').forEach(initDateSelects);
+
+// ---------- 택일 전용: 목적/기간 버튼 ----------
+const dateSelection = { purpose: '결혼', rangeMonths: 1 };
+document.querySelectorAll('.purpose-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.purpose-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    dateSelection.purpose = btn.dataset.purpose;
+  });
+});
+document.querySelectorAll('.range-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.range-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    dateSelection.rangeMonths = Number(btn.dataset.range);
+  });
+});
 
 // ---------- 본인/상대방 입력 블록 초기화 (양력↔음력, 시간모드, 시진선택) ----------
 document.querySelectorAll('.person-block').forEach((block) => {
@@ -350,6 +377,10 @@ document.getElementById('toStep3').addEventListener('click', async () => {
       state.partner = { name: pname, ...partnerInfo };
     }
 
+    if (state.fortune.needsDateSelection) {
+      state.dateSelection = { ...dateSelection };
+    }
+
     const [y, m, d] = state.self.bdate.split('-').map(Number);
     const [hh, mm] = state.self.btime.split(':').map(Number);
     const saju = getSaju(y, m, d, hh, mm);
@@ -418,7 +449,7 @@ document.getElementById('payBtn').addEventListener('click', async () => {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         orderId, fortune: state.fortune, self: state.self, partner: state.partner,
-        email: state.email, depositorName,
+        email: state.email, depositorName, dateSelection: state.dateSelection,
       }),
     });
     const data = await res.json();
