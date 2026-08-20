@@ -5,7 +5,7 @@ const store = require('./lib/store.js');
 const KoreanLunarCalendar = require('korean-lunar-calendar');
 const { generateFortunePdf } = require('./lib/pdf.js');
 const { getTodayFortune } = require('./lib/today-fortune.js');
-const { recordVisit, getVisitCount } = require('./lib/visit-counter.js');
+const { recordEvent, getFunnel } = require('./lib/visit-counter.js');
 
 const app = express();
 app.use(express.json());
@@ -62,10 +62,11 @@ app.get('/api/today-fortune', async (req, res) => {
   }
 });
 
-// -------------------- 0-3) 방문자 수 기록 --------------------
-app.post('/api/visit', (req, res) => {
-  const count = recordVisit();
-  res.json({ ok: true, count });
+// -------------------- 0-3) 방문 퍼널 단계 기록 --------------------
+// event: 'main_visit' | 'today_visit' | 'fortune_selected' | 'info_submitted'
+app.post('/api/track', (req, res) => {
+  const events = recordEvent(req.body?.event);
+  res.json({ ok: true, events });
 });
 
 // -------------------- 1) 주문 생성 --------------------
@@ -450,7 +451,7 @@ function checkAdmin(req, res, next) {
 }
 
 app.get('/api/admin/visit-count', checkAdmin, (req, res) => {
-  res.json(getVisitCount());
+  res.json(getFunnel());
 });
 
 app.get('/api/admin/orders', checkAdmin, (req, res) => {

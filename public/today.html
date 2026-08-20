@@ -95,12 +95,15 @@
 </div>
 
 <script>
-// 오늘 이 브라우저에서 이미 방문 기록을 남겼으면 중복으로 세지 않음
+// 오늘 이 브라우저에서 이미 기록을 남겼으면 중복으로 세지 않음
 (function () {
   const todayStr = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const key = 'visited_' + todayStr;
+  const key = 'tracked_today_visit_' + todayStr;
   if (!localStorage.getItem(key)) {
-    fetch('/api/visit', { method: 'POST' }).catch(() => {});
+    fetch('/api/track', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'today_visit' }),
+    }).catch(() => {});
     localStorage.setItem(key, '1');
   }
 })();

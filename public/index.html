@@ -337,15 +337,18 @@
 </div>
 
 <script>
-  // 오늘 이 브라우저에서 이미 방문 기록을 남겼으면 중복으로 세지 않음 (자정 지나면 날짜 바뀌어 다시 기록됨)
-  (function () {
+  // 오늘 이 브라우저에서 이미 기록을 남긴 단계는 중복으로 세지 않음 (자정 지나면 다시 기록됨)
+  window.trackEvent = function (eventName) {
     const todayStr = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const key = 'visited_' + todayStr;
-    if (!localStorage.getItem(key)) {
-      fetch('/api/visit', { method: 'POST' }).catch(() => {});
-      localStorage.setItem(key, '1');
-    }
-  })();
+    const key = 'tracked_' + eventName + '_' + todayStr;
+    if (localStorage.getItem(key)) return;
+    fetch('/api/track', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: eventName }),
+    }).catch(() => {});
+    localStorage.setItem(key, '1');
+  };
+  trackEvent('main_visit');
 </script>
 <script src="/app.js"></script>
 </body>

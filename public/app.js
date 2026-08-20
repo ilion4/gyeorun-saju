@@ -103,6 +103,7 @@ FORTUNES.forEach((f) => {
   el.addEventListener('click', () => {
     document.querySelectorAll('.fortune-card').forEach((c) => c.classList.remove('selected'));
     el.classList.add('selected');
+    if (window.trackEvent) trackEvent('fortune_selected');
     showTierPanel(f);
   });
   grid.appendChild(el);
@@ -333,6 +334,8 @@ document.getElementById('toStep3').addEventListener('click', async () => {
     const rawPDate = partnerBlock.querySelector('.bdate-input').value;
     if (!pname || !rawPDate) { alert('상대방 이름과 생년월일도 입력해주세요.'); return; }
   }
+
+  if (window.trackEvent) trackEvent('info_submitted');
 
   const btn = document.getElementById('toStep3');
   btn.disabled = true; btn.textContent = '사주 계산 중...';

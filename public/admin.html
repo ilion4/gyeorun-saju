@@ -31,6 +31,12 @@
   .resend:hover { border-color: var(--gold); }
   .scroll { overflow-x:auto; }
   .empty { text-align:center; color:var(--dim); padding: 60px 0; font-size:14px; }
+  .funnel-box { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:18px; }
+  .funnel-title { font-size:12px; color:var(--dim); margin-bottom:10px; font-weight:600; }
+  .funnel-row { display:flex; justify-content:space-between; align-items:center; padding:7px 0; font-size:13.5px; border-bottom:1px solid rgba(255,255,255,.05); }
+  .funnel-row:last-child { border-bottom:none; }
+  .funnel-label { color:var(--ink); }
+  .funnel-num { font-family:'IBM Plex Mono', monospace; color:var(--gold); font-weight:700; }
 </style>
 </head>
 <body>
@@ -48,6 +54,12 @@
     <button class="refresh" onclick="load()">새로고침</button>
   </div>
   <div class="summary" id="summary"></div>
+
+  <div class="funnel-box">
+    <div class="funnel-title">오늘의 방문 흐름 (자정 리셋)</div>
+    <div id="funnelBox"></div>
+  </div>
+
   <div class="scroll">
     <table id="table" style="display:none;">
       <thead>
@@ -91,8 +103,26 @@
       const res = await fetch('/api/admin/visit-count', { headers: { 'x-admin-password': pw } });
       if (!res.ok) return;
       const data = await res.json();
-      document.getElementById('visitChip').textContent = `오늘 방문 ${data.count}명`;
+      renderFunnel(data.events);
     } catch (e) { /* 방문자 수는 부가정보라 실패해도 조용히 넘어감 */ }
+  }
+
+  const FUNNEL_LABEL = {
+    main_visit: '메인 화면 방문',
+    today_visit: '오늘의운세 방문',
+    fortune_selected: '운세 선택함',
+    info_submitted: '정보 입력 완료',
+  };
+
+  function renderFunnel(events) {
+    if (!events) return;
+    const box = document.getElementById('funnelBox');
+    box.innerHTML = Object.entries(FUNNEL_LABEL).map(([key, label]) => `
+      <div class="funnel-row">
+        <span class="funnel-label">${label}</span>
+        <span class="funnel-num">${events[key] ?? 0}명</span>
+      </div>
+    `).join('');
   }
 
   function fmtTime(ts) {
@@ -109,7 +139,6 @@
     const revenue = orders.filter(o => o.paid).reduce((s,o) => s + (o.price||0), 0);
     document.getElementById('summary').innerHTML = `
       <div class="chip">전체 ${orders.length}건</div>
-      <div class="chip" id="visitChip" style="border-color:var(--gold); color:var(--gold);">오늘 방문 -명</div>
       <div class="chip">발송완료 ${sent}건</div>
       <div class="chip" style="${failed>0?'color:#C05656':''}">실패 ${failed}건</div>
       <div class="chip">누적 결제금액 ${revenue.toLocaleString()}원</div>
