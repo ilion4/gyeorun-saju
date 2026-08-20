@@ -49,8 +49,11 @@ app.get('/api/bank-info', (req, res) => {
 
 // -------------------- 0-2) 오늘의 운세 (무료 코너, 하루 1회만 AI 호출) --------------------
 app.get('/api/today-fortune', async (req, res) => {
+  // 브라우저/중간 프록시가 응답을 캐싱해서 자정이 지나도 어제 내용이 그대로 보이는 걸 방지
+  res.set('Cache-Control', 'no-store');
   try {
     const data = await getTodayFortune(callClaude, !!ANTHROPIC_API_KEY);
+    console.log(`[오늘의운세 응답] date=${data.date} (캐시 또는 신규 생성)`);
     res.json(data);
   } catch (err) {
     console.error('[오늘의운세 생성 실패]', err.message);

@@ -124,14 +124,19 @@ let fortuneData = null;
 async function loadData() {
   try {
     const res = await fetch('/api/today-fortune');
-    fortuneData = await res.json();
+    const data = await res.json();
+    if (!res.ok || !data.animals) {
+      document.getElementById('loadingMsg').textContent = '오늘의 운세를 불러오지 못했어요 (' + (data.message || res.status) + '). 새로고침 해주세요.';
+      return;
+    }
+    fortuneData = data;
     document.getElementById('loadingMsg').style.display = 'none';
     if (fortuneData.date) {
       const [y, m, d] = fortuneData.date.split('-');
       document.getElementById('dateBadge').textContent = `${y}년 ${Number(m)}월 ${Number(d)}일`;
     }
   } catch (err) {
-    document.getElementById('loadingMsg').textContent = '운세를 불러오지 못했어요. 새로고침 해주세요.';
+    document.getElementById('loadingMsg').textContent = '운세를 불러오지 못했어요 (네트워크 오류). 새로고침 해주세요.';
   }
 }
 loadData();
@@ -140,10 +145,16 @@ function selectAnimal(key, btnEl) {
   document.querySelectorAll('.zodiac-btn').forEach((b) => b.classList.remove('selected'));
   btnEl.classList.add('selected');
 
-  if (!fortuneData) return;
+  if (!fortuneData) {
+    alert('아직 운세 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
+    return;
+  }
   const animal = fortuneData.animals[key];
   const meta = fortuneData.meta[key];
-  if (!animal || !meta) return;
+  if (!animal || !meta) {
+    alert('이 띠의 운세 데이터를 찾을 수 없어요.');
+    return;
+  }
 
   document.getElementById('animalName').textContent = `${meta.name} 오늘의 운세`;
   document.getElementById('summaryText').textContent = animal.summary;
