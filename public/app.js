@@ -18,12 +18,12 @@ const TIER_DEEP  = { key: 'deep',  label: '심도있게', pageDesc: 'A4 약 8장
 const FORTUNES = [
   { id: 'compat',  name: '궁합',   img: '/media/fortune-compat.jpg',  priceBrief: 4900,  priceDeep: 9900, desc: '두 사람의 사주로 보는 궁합', needsPartner: true },
   { id: 'reunion', name: '재회운', img: '/media/fortune-reunion.jpg', priceBrief: 4900,  priceDeep: 9900, desc: '헤어진 인연, 다시 이어질까' },
-  { id: 'newyear', name: '신년운', img: '/media/fortune-newyear.jpg', priceBrief: 4900,  priceDeep: 9900, desc: '올해 나에게 다가올 흐름' },
+  { id: 'lifetime', name: '평생사주', img: '/media/fortune-lifetime.jpg', fixedPrice: 13000, pageDesc: 'A4 약 10장(표지·목차 포함)', desc: '타고난 사주로 보는 인생 전체 흐름' },
   { id: 'love',    name: '애정운/결혼운', img: '/media/fortune-love.jpg',    priceBrief: 4900,  priceDeep: 9900, desc: '지금 내 연애와 결혼의 흐름' },
   { id: 'money',   name: '재물운', img: '/media/fortune-money.jpg',   priceBrief: 4900,  priceDeep: 9900, desc: '돈이 들어오고 나가는 흐름' },
   { id: 'career',  name: '취업/사업운', img: '/media/fortune-career.jpg', priceBrief: 4900, priceDeep: 9900, desc: '일과 커리어의 방향' },
-  { id: 'dates',   name: '택일',   img: null, emoji: '📅', priceBrief: 4900, priceDeep: 9900, desc: '결혼·이사·개업 좋은 날짜 추천', needsDateSelection: true },
-  { id: 'lifetime', name: '평생사주', img: null, emoji: '🌳', priceBrief: 4900, priceDeep: 9900, desc: '타고난 사주로 보는 인생 전체 흐름' },
+  { id: 'dates',   name: '택일',   img: '/media/fortune-dates.jpg', priceBrief: 4900, priceDeep: 9900, desc: '결혼·이사·개업 좋은 날짜 추천', needsDateSelection: true },
+  { id: 'newyear', name: '신년운', img: '/media/fortune-newyear.jpg', priceBrief: 4900,  priceDeep: 9900, desc: '올해 나에게 다가올 흐름' },
 ];
 
 const state = {
@@ -101,21 +101,48 @@ const grid = document.getElementById('fortuneGrid');
 FORTUNES.forEach((f) => {
   const el = document.createElement('div');
   el.className = 'fortune-card';
+  const displayPrice = f.fixedPrice ?? f.priceBrief;
   if (f.img) {
     el.style.backgroundImage = `url('${f.img}')`;
   } else {
     el.classList.add('fortune-card-fallback');
-    el.innerHTML = `<span class="fc-emoji">${f.emoji || '🔮'}</span><span class="fc-name">${f.name}</span><span class="fc-price">${f.priceBrief.toLocaleString()}원~</span>`;
+    el.innerHTML = `<span class="fc-emoji">${f.emoji || '🔮'}</span><span class="fc-name">${f.name}</span><span class="fc-price">${displayPrice.toLocaleString()}${f.fixedPrice ? '원' : '원~'}</span>`;
   }
-  el.setAttribute('aria-label', `${f.name} ${f.priceBrief.toLocaleString()}원부터`);
+  el.setAttribute('aria-label', `${f.name} ${displayPrice.toLocaleString()}원`);
   el.addEventListener('click', () => {
     document.querySelectorAll('.fortune-card').forEach((c) => c.classList.remove('selected'));
     el.classList.add('selected');
     if (window.trackEvent) trackEvent('fortune_selected');
-    showTierPanel(f);
+    if (f.fixedPrice) {
+      selectFixedPriceFortune(f);
+    } else {
+      showTierPanel(f);
+    }
   });
   grid.appendChild(el);
 });
+
+// ---------- 옵션 없이 고정 가격인 상품 (예: 평생사주) — 티어 선택 없이 바로 정보 입력으로 ----------
+function selectFixedPriceFortune(f) {
+  state.fortune = {
+    id: f.id,
+    baseName: f.name,
+    name: f.name,
+    needsPartner: false,
+    needsDateSelection: false,
+    price: f.fixedPrice,
+    tierKey: 'deep',       // 서버 프롬프트가 "심도" 구조(4섹션+12항목)를 그대로 쓰도록
+    tierLabel: '',
+    charMin: 11600,          // 총 10쪽(표지+목차+본문8장)에 맞춰 실측 캘리브레이션한 값
+    charMax: 12100,
+    maxTokens: 9500,
+    totalPages: 10,
+  };
+  document.getElementById('partnerFieldset').style.display = 'none';
+  document.getElementById('legend-self').textContent = '내 정보';
+  document.getElementById('dateSelectionFieldset').style.display = 'none';
+  goTo(2);
+}
 
 // ---------- 간략하게 / 심도있게 선택 ----------
 function showTierPanel(f) {

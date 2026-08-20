@@ -281,8 +281,9 @@ ${isDeep ? `- avoidDates도 같은 기간 안에서 ${avoidCount}개 작성 (rec
     const monthlyKeyName = isLifetime ? '인생 시기별 흐름(monthly)' : '월별운세(monthly)';
     const monthlyItemLabel = isLifetime ? '시기(예: "20대 초반")' : '월(예: "1월")';
     const monthlyExampleList = isLifetime ? LIFE_STAGES.map((s) => `"${s}"`).join(', ') : '"1월"부터 "12월"까지';
+    const totalPages = order.fortune.totalPages || (isDeep ? 8 : 5);
 
-    prompt = `당신은 30년 경력의 사주 명리학 상담가입니다. 아래 사주 정보를 바탕으로 "${productName}" 풀이를 작성하세요. 이 결과는 PDF 리포트(A4, 표지·목차 포함 총 ${isDeep ? '8' : '5'}쪽 분량)로 만들어지므로, 반드시 아래 JSON 형식으로만 응답하세요. JSON 앞뒤로 다른 설명이나 마크다운 코드블록(\`\`\`)을 절대 넣지 마세요.
+    prompt = `당신은 30년 경력의 사주 명리학 상담가입니다. 아래 사주 정보를 바탕으로 "${productName}" 풀이를 작성하세요. 이 결과는 PDF 리포트(A4, 표지·목차 포함 총 ${totalPages}쪽 분량)로 만들어지므로, 반드시 아래 JSON 형식으로만 응답하세요. JSON 앞뒤로 다른 설명이나 마크다운 코드블록(\`\`\`)을 절대 넣지 마세요.
 
 ${selfSaju}
 ${partnerSaju}
@@ -299,8 +300,8 @@ ${partnerSaju}
 
 분량 지침 (아래 자리수를 반드시 지킬 것 — 페이지 수가 정확히 맞아야 함):
 - sections 본문 텍스트 합계: ${charMin}~${charMax}자 (공백 포함, 소제목 글자는 제외)
-${isDeep ? `- ${monthlyKeyName} 각 항목: 70~85자씩, 12개 전부 채울 것 (합계 약 840~1,020자)
-- closing: 200~260자` : `- closing: 120~180자`}
+${isDeep ? `- ${monthlyKeyName} 각 항목: ${isLifetime ? '92~98자씩' : '70~85자씩'}, 12개 전부 채울 것
+- closing: ${isLifetime ? '230~260자' : '200~260자'}` : `- closing: 120~180자`}
 - 빈 문장이나 늘어지는 수사로 채우지 말고, 지정된 자리수 안에서 내용을 실제로 촘촘하게 채울 것 (여백 없이 알찬 문장으로)
 
 작성 지침:
