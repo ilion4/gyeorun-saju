@@ -83,6 +83,16 @@
     const res = await fetch('/api/admin/orders', { headers: { 'x-admin-password': pw } });
     if (!res.ok) { alert('세션이 만료됐어요. 다시 로그인해주세요.'); location.reload(); return; }
     renderOrders((await res.json()).orders);
+    loadVisitCount(pw);
+  }
+
+  async function loadVisitCount(pw) {
+    try {
+      const res = await fetch('/api/admin/visit-count', { headers: { 'x-admin-password': pw } });
+      if (!res.ok) return;
+      const data = await res.json();
+      document.getElementById('visitChip').textContent = `오늘 방문 ${data.count}명`;
+    } catch (e) { /* 방문자 수는 부가정보라 실패해도 조용히 넘어감 */ }
   }
 
   function fmtTime(ts) {
@@ -99,6 +109,7 @@
     const revenue = orders.filter(o => o.paid).reduce((s,o) => s + (o.price||0), 0);
     document.getElementById('summary').innerHTML = `
       <div class="chip">전체 ${orders.length}건</div>
+      <div class="chip" id="visitChip" style="border-color:var(--gold); color:var(--gold);">오늘 방문 -명</div>
       <div class="chip">발송완료 ${sent}건</div>
       <div class="chip" style="${failed>0?'color:#C05656':''}">실패 ${failed}건</div>
       <div class="chip">누적 결제금액 ${revenue.toLocaleString()}원</div>

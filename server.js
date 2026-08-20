@@ -5,6 +5,7 @@ const store = require('./lib/store.js');
 const KoreanLunarCalendar = require('korean-lunar-calendar');
 const { generateFortunePdf } = require('./lib/pdf.js');
 const { getTodayFortune } = require('./lib/today-fortune.js');
+const { recordVisit, getVisitCount } = require('./lib/visit-counter.js');
 
 const app = express();
 app.use(express.json());
@@ -59,6 +60,12 @@ app.get('/api/today-fortune', async (req, res) => {
     console.error('[오늘의운세 생성 실패]', err.message);
     res.status(500).json({ message: '오늘의 운세를 불러오지 못했어요. 잠시 후 다시 시도해주세요.' });
   }
+});
+
+// -------------------- 0-3) 방문자 수 기록 --------------------
+app.post('/api/visit', (req, res) => {
+  const count = recordVisit();
+  res.json({ ok: true, count });
 });
 
 // -------------------- 1) 주문 생성 --------------------
@@ -441,6 +448,10 @@ function checkAdmin(req, res, next) {
   }
   next();
 }
+
+app.get('/api/admin/visit-count', checkAdmin, (req, res) => {
+  res.json(getVisitCount());
+});
 
 app.get('/api/admin/orders', checkAdmin, (req, res) => {
   const orders = store.listOrders().map((o) => ({
